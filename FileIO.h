@@ -12,22 +12,19 @@ using namespace std;
 
 class FileIO {
     public:
-        FileIO();
-        string openFile();
-        void closeFile();
-        void printToFile_Lexer(Token token);
-    void printToFile_Grammar(ParsingItem type);
-    void printToFile_Error(int lineNum, string errorMsg);
+        static string openFile();
+        static void closeFile();
+        static void printToFile_Lexer(Token token);
+    static void printToFile_Grammar(ParsingItem type);
+    static void printToFile_Error(int lineNum, string errorMsg);
 
     private:
-    std::ifstream input;
-    std::ofstream output;
-    std::ofstream error;
-    std::string fileName;
+    static std::ifstream input;
+    static std::ofstream output;
+    static std::ofstream error;
 
 };
 
-inline FileIO fileIO;
-inline int sys =11;
+//inline FileIO fileIO;
 
 #endif //COMPILER_FILEIO_H
