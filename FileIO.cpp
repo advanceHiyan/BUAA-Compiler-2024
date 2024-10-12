@@ -7,25 +7,18 @@
 #include <string>
 #include <sstream>
 #include "ConstType.h"
-
-FileIO ::FileIO() {
-
-}
+std::ifstream FileIO::input = std::ifstream ("testfile.txt");
+std::ofstream FileIO::output = std::ofstream ("parser.txt");
+std::ofstream FileIO::error = std::ofstream ("error.txt");
 
 std::string FileIO:: openFile() {
-    input = std::ifstream ("testfile.txt");
-    output = std::ofstream ("parser.txt");
-    error = std::ofstream ("error.txt");
-
     if (!input.is_open()) {
         std::cerr << "Failed to open file." << std::endl;
         return "";
     }
-
     std::stringstream buffer;
     buffer << input.rdbuf(); // 读取文件内容到 stringstream
     std::string content = buffer.str();
-
     return content;
 }
 
