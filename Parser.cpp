@@ -558,34 +558,25 @@ Node *Parser::parseFuncRParams(Node *parent) {
 //乘除模表达式 MulExp → UnaryExp | MulExp ('*' | '/' | '%') UnaryExp
 Node *Parser::parseMulExp(Node *parent) {
     Node *node = new Node(ParsingItem::MulExp, nullptr, parent);
-    Node *child = parseUnaryExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::MULT ||
-    lexer.getOneToken()->tokenType == ConstType::DIV ||
-    lexer.getOneToken()->tokenType == ConstType::MOD) {
-        Node *temp = new Node(ParsingItem::MulExp, nullptr, parent);
-        node->addChild(temp);
-        temp->addChild(child);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseUnaryExp(node));
+
     while(lexer.getOneToken()->tokenType == ConstType::MULT ||
     lexer.getOneToken()->tokenType == ConstType::DIV ||
     lexer.getOneToken()->tokenType == ConstType::MOD) {
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::MulExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //Mul -> (Mul */% UnaryExp)
         node->addChild(parseOverToken(node));//MUL或DIV或MOD属于终结符
-        Node *child = parseUnaryExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::MULT ||
-           lexer.getOneToken()->tokenType == ConstType::DIV ||
-           lexer.getOneToken()->tokenType == ConstType::MOD) {
-            Node *temp = new Node(ParsingItem::MulExp, nullptr, parent);
-            node->addChild(temp);
-            temp->addChild(child);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        node->addChild(parseUnaryExp(node));
     }
     outPrintTree(node);
     return node;
@@ -594,31 +585,24 @@ Node *Parser::parseMulExp(Node *parent) {
 //加减表达式 AddExp → MulExp | AddExp ('+' | '−') MulExp
 Node *Parser::parseAddExp(Node *parent) {
     Node *node = new Node(ParsingItem::AddExp, nullptr, parent);
-    Node *child = parseMulExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::PLUS ||
-    lexer.getOneToken()->tokenType == ConstType::MINU) {
-        Node *temp = new Node(ParsingItem::AddExp, nullptr, parent);
-        temp->addChild(child);
-        node->addChild(temp);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseMulExp(node));
+
     while(lexer.getOneToken()->tokenType == ConstType::PLUS ||
     lexer.getOneToken()->tokenType == ConstType::MINU) {
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::AddExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //Add -> (Add +/- MulExp)
         node->addChild(parseOverToken(node));//PLUS或MINU属于终结符
-        Node *child = parseMulExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::PLUS ||
-           lexer.getOneToken()->tokenType == ConstType::MINU) {
-            Node *temp = new Node(ParsingItem::AddExp, nullptr, parent);
-            temp->addChild(child);
-            node->addChild(temp);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        node->addChild(parseMulExp(node));
     }
     outPrintTree(node);
     return node;
@@ -627,32 +611,24 @@ Node *Parser::parseAddExp(Node *parent) {
 //相等性表达式 EqExp → RelExp | EqExp ('==' | '!=') RelExp
 Node *Parser::parseEqExp(Node *parent) {
     Node *node = new Node(ParsingItem::EqExp, nullptr, parent);
-    Node *child = parseRelExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::EQL ||
-    lexer.getOneToken()->tokenType == ConstType::NEQ) {
-        Node *temp = new Node(ParsingItem::EqExp, nullptr, parent);
-        temp->addChild(child);
-        node->addChild(temp);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseRelExp(node));
 
     while(lexer.getOneToken()->tokenType == ConstType::EQL ||
     lexer.getOneToken()->tokenType == ConstType::NEQ) {
-        node->addChild(parseOverToken(node));//EQ或NEQ属于终结符
-        Node *child = parseRelExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::EQL ||
-           lexer.getOneToken()->tokenType == ConstType::NEQ) {
-            Node *temp = new Node(ParsingItem::EqExp, nullptr, parent);
-            temp->addChild(child);
-            node->addChild(temp);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::EqExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //Eq -> (Eq ==!= RelExp)
+        node->addChild(parseOverToken(node));//EQL或NEQ属于终结符
+        node->addChild(parseRelExp(node));
     }
     outPrintTree(node);
     return node;
@@ -661,38 +637,26 @@ Node *Parser::parseEqExp(Node *parent) {
 //关系表达式 RelExp → AddExp | RelExp ('<' | '>' | '<=' | '>=') AddExp
 Node *Parser::parseRelExp(Node *parent) {
     Node *node = new Node(ParsingItem::RelExp, nullptr, parent);
-    Node *child = parseAddExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::LSS ||
-    lexer.getOneToken()->tokenType == ConstType::GRE ||
-    lexer.getOneToken()->tokenType == ConstType::LEQ ||
-    lexer.getOneToken()->tokenType == ConstType::GEQ) {
-        Node *temp = new Node(ParsingItem::RelExp, nullptr, parent);
-        temp->addChild(child);
-        node->addChild(temp);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseAddExp(node));
 
     while(lexer.getOneToken()->tokenType == ConstType::LSS ||
     lexer.getOneToken()->tokenType == ConstType::GRE ||
     lexer.getOneToken()->tokenType == ConstType::LEQ ||
     lexer.getOneToken()->tokenType == ConstType::GEQ) {
-        node->addChild(parseOverToken(node));//LESS或GREAT或LESSEQ或GREATEQ属于终结符
-        Node *child = parseAddExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::LSS ||
-           lexer.getOneToken()->tokenType == ConstType::GRE ||
-           lexer.getOneToken()->tokenType == ConstType::LEQ ||
-           lexer.getOneToken()->tokenType == ConstType::GEQ) {
-            Node *temp = new Node(ParsingItem::RelExp, nullptr, parent);
-            temp->addChild(child);
-            node->addChild(temp);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::RelExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //Rel -> (Rel < > <= >= AddExp)
+        node->addChild(parseOverToken(node));//LSS或GRE或LEQ或GEQ属于终结符
+        node->addChild(parseAddExp(node));
     }
     outPrintTree(node);
     return node;
@@ -727,32 +691,24 @@ Node *Parser::parseConstExp(Node *parent) {
 //逻辑与表达式 LAndExp → EqExp | LAndExp '&&' EqExp
 Node *Parser::parseLAndExp(Node *parent) {
     Node *node = new Node(ParsingItem::LAndExp, nullptr, parent);
-    Node *child = parseEqExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::AND ||
-            lexer.getOneToken()->tokenType == ConstType::SINGLEAND) {
-        Node *temp = new Node(ParsingItem::LAndExp, nullptr, parent);
-        temp->addChild(child);
-        node->addChild(temp);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseEqExp(node));
 
     while(lexer.getOneToken()->tokenType == ConstType::AND ||
             lexer.getOneToken()->tokenType == ConstType::SINGLEAND) {
-        node->addChild(parseOverToken(node));//ANDAND属于终结符
-        Node *child = parseEqExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::AND ||
-           lexer.getOneToken()->tokenType == ConstType::SINGLEAND) {
-            Node *temp = new Node(ParsingItem::LAndExp, nullptr, parent);
-            temp->addChild(child);
-            node->addChild(temp);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::LAndExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //LAnd -> (LAnd && EqExp)
+        node->addChild(parseOverToken(node));//AND或SINGLEAND属于终结符
+        node->addChild(parseEqExp(node));
     }
     outPrintTree(node);
     return node;
@@ -761,33 +717,24 @@ Node *Parser::parseLAndExp(Node *parent) {
 //逻辑或表达式 LOrExp → LAndExp | LOrExp '||' LAndExp
 Node *Parser::parseLOrExp(Node *parent) {
     Node *node = new Node(ParsingItem::LOrExp, nullptr, parent);
-    Node *child = parseLAndExp(node);
-    if(lexer.getOneToken()->tokenType == ConstType::OR ||
-            lexer.getOneToken()->tokenType == ConstType::SINGLEOR) {
-        Node *temp = new Node(ParsingItem::LOrExp, nullptr, parent);
-        temp->addChild(child);
-        node->addChild(temp);
-        child ->parent = temp;
-        outPrintTree(temp);
-    } else {
-        node->addChild(child);
-    }
+    node->addChild(parseLAndExp(node));
 
     while(lexer.getOneToken()->tokenType == ConstType::OR ||
             lexer.getOneToken()->tokenType == ConstType::SINGLEOR) {
-        node->addChild(parseOverToken(node));//OROR属于终结符
-
-        Node *child = parseLAndExp(node);
-        if(lexer.getOneToken()->tokenType == ConstType::OR ||
-           lexer.getOneToken()->tokenType == ConstType::SINGLEOR) {
-            Node *temp = new Node(ParsingItem::LOrExp, nullptr, parent);
-            temp->addChild(child);
-            node->addChild(temp);
-            child ->parent = temp;
-            outPrintTree(temp);
-        } else {
-            node->addChild(child);
-        }
+        //build parent and newNode don't need to add child to parent
+        Node * newNode = new Node(ParsingItem::LOrExp, nullptr, parent);
+        //remove node and parent don't need to remove child from parent
+        node->parent = newNode;
+        //build newNode and node
+        newNode->addChild(node);
+        //print node
+        outPrintTree(node);
+        //change newNode to node
+        node = newNode;
+        newNode = nullptr;
+        //LOr -> (LOr || LAndExp)
+        node->addChild(parseOverToken(node));//OR或SINGLEOR属于终结符
+        node->addChild(parseLAndExp(node));
     }
     outPrintTree(node);
     return node;
