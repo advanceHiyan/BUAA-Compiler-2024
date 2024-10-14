@@ -3,6 +3,7 @@
 #include "FileIO.h"
 #include "Parser.h"
 
+
 int main() {
     std::string content = FileIO::openFile();
     Lexer lexer(content, reserveToConstMap);
