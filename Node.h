@@ -54,7 +54,7 @@ struct Node {
     }
 
     void addChild(Node *child) {
-        if(child!= nullptr) {
+        if(child == nullptr) {
             return;
         }
         this->children.push_back(child);
