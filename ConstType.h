@@ -123,6 +123,31 @@ enum class ReservedWord {
     ELSETK, // else
 };
 
+enum class SymbolType {
+    ConstChar,
+    ConstInt,
+    ConstCharArray,
+    ConstIntArray,
+    Char,
+    Int,
+    CharArray,
+    IntArray,
+    VoidFunc,
+    CharFunc,
+    IntFunc,
+};
+
+enum class TableType {
+    MainFunc,
+    VoidFunc,
+    CharFunc,
+    IntFunc,
+    ForBlock,
+    IfBlock,
+    ElseBlock,
+    EmptyBlock,
+    OverallBlock,
+};
 
 // 定义哈希表，从字符映射到 ConstType
 const std::unordered_map<char, ConstType> charToConstMap ={

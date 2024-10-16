@@ -10,4 +10,7 @@ add_executable(Compiler main.cpp
         Node.h
         Parser.cpp
         Parser.h
+        SymbolTable.h
+        Visitor.cpp
+        Visitor.h
 )

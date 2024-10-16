@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <algorithm>
 #include "ConstType.h"
 std::ifstream FileIO::input = std::ifstream ("testfile.txt");
 std::ofstream FileIO::output = std::ofstream ("parser.txt");
@@ -26,6 +27,32 @@ void FileIO:: closeFile() {
     input.close();
     output.close();
     error.close();
+}
+
+bool greaterThan(Symbol* a, Symbol* b) {
+    return a->blockNum < b->blockNum;
+}
+
+void FileIO::printToFile_Symbol(std::vector<Symbol*> *printf_list) {
+    FileIO::output = std::ofstream ("symbol.txt");
+    std::sort((*printf_list).begin(), (*printf_list).end(), greaterThan);\
+    for (auto symbol : (*printf_list)) {
+    std::string typeStr;
+    switch (symbol->type) {
+        case SymbolType::ConstChar: typeStr = "ConstChar"; break;
+        case SymbolType::ConstInt: typeStr = "ConstInt"; break;
+        case SymbolType::ConstCharArray: typeStr = "ConstCharArray"; break;
+        case SymbolType::ConstIntArray: typeStr = "ConstIntArray"; break;
+        case SymbolType::Char: typeStr = "Char"; break;
+        case SymbolType::Int: typeStr = "Int"; break;
+        case SymbolType::CharArray: typeStr = "CharArray"; break;
+        case SymbolType::IntArray: typeStr = "IntArray"; break;
+        case SymbolType::VoidFunc: typeStr = "VoidFunc"; break;
+        case SymbolType::CharFunc: typeStr = "CharFunc"; break;
+        case SymbolType::IntFunc: typeStr = "IntFunc"; break;
+    }
+    FileIO::output<< symbol->blockNum << " " << symbol->name << " " << typeStr << std::endl;
+    }
 }
 
 void FileIO::printToFile_Grammar(ParsingItem type) {
@@ -136,3 +163,5 @@ void FileIO ::printToFile_Lexer(Token token) {
     }
     output << " "<< tokenValue << std ::endl;
 }
+
+
