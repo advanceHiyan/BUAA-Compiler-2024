@@ -54,6 +54,7 @@ enum class ParsingItem {
 
     //终结符
     OverToken,//标识符，数字，注释，数值，字符，字符串
+    CreateForLessToken, //自己创建的缺失的符号
 };
 
 enum class ConstType {
@@ -104,6 +105,8 @@ enum class ConstType {
     OVERFILE, // overfile
     SINGLEAND, // &
     SINGLEOR, // |
+
+    CreateForLessToken, //自己创建的缺失的符号
 };
 
 enum class ReservedWord {

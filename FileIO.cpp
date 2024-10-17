@@ -29,13 +29,19 @@ void FileIO:: closeFile() {
     error.close();
 }
 
-bool greaterThan(Symbol* a, Symbol* b) {
-    return a->blockNum < b->blockNum;
+bool greaterThan(Symbol* a, Symbol* b) {//交换参数不能同时为真
+    if(a->blockNum < b->blockNum) {
+        return true;
+    }
+    if(b->blockNum < a->blockNum) {
+        return false;
+    }
+    return false;
 }
 
 void FileIO::printToFile_Symbol(std::vector<Symbol*> *printf_list) {
     FileIO::output = std::ofstream ("symbol.txt");
-    std::sort((*printf_list).begin(), (*printf_list).end(), greaterThan);\
+    std::stable_sort((*printf_list).begin(), (*printf_list).end(), greaterThan);//换个方法
     for (auto symbol : (*printf_list)) {
     std::string typeStr;
     switch (symbol->type) {

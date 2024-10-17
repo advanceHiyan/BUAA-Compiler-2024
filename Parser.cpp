@@ -52,8 +52,10 @@ Node *Parser::parseConstDecl(Node *parent) {
         node->addChild(parseOverToken(node));//COMMA属于终结符
         node->addChild(parseConstDef(node));
     }
-    if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+    if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
         FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+        node->addChild(createTokenForLess(node,";"));
+    }
     else
         node->addChild(parseOverToken(node));//SEMICN属于终结符
     outPrintTree(node);
@@ -79,8 +81,10 @@ Node *Parser::parseConstDef(Node *parent) {
     if(lexer.getOneToken()->tokenType == ConstType::LBRACK) {
         node->addChild(parseOverToken(node));//LBRACK属于终结符
         node->addChild(parseConstExp(node));
-        if(lexer.getOneToken()->tokenType != ConstType::RBRACK)
+        if(lexer.getOneToken()->tokenType != ConstType::RBRACK) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"k");
+            node->addChild(createTokenForLess(node,"]"));
+        }
         else
             node->addChild(parseOverToken(node));//RBRACK属于终结符
     }
@@ -124,8 +128,10 @@ Node *Parser::parseVarDecl(Node *parent) {
         node->addChild(parseOverToken(node));//COMMA属于终结符
         node->addChild(parseVarDef(node));
     }
-    if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+    if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
         FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+        node->addChild(createTokenForLess(node,";"));
+    }
     else
         node->addChild(parseOverToken(node));//SEMICN属于终结符
     outPrintTree(node);
@@ -140,8 +146,10 @@ Node *Parser::parseVarDef(Node *parent) {
     if(lexer.getOneToken()->tokenType == ConstType::LBRACK) {
         node->addChild(parseOverToken(node));//LBRACK属于终结符
         node->addChild(parseConstExp(node));
-        if(lexer.getOneToken()->tokenType != ConstType::RBRACK)
+        if(lexer.getOneToken()->tokenType != ConstType::RBRACK) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"k");
+            node->addChild(createTokenForLess(node,"]"));
+        }
         else
             node->addChild(parseOverToken(node));//RBRACK属于终结符
     }
@@ -190,10 +198,13 @@ Node *Parser::parseFuncDef(Node *parent) {
     } else  {
         if(lexer.getOneToken() ->tokenType == ConstType::LBRACE) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+            node->addChild(createTokenForLess(node,")"));
         } else {
             node->addChild(parseFuncFParams(node));
-            if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+            if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+                node->addChild(createTokenForLess(node,")"));
+            }
             else
                 node->addChild(parseOverToken(node));//RPARENT属于终结符
         }
@@ -210,8 +221,10 @@ Node *Parser::parseMainFuncDef(Node *parent) {
     node->addChild(parseOverToken(node));//INTTK属于终结符
     node->addChild(parseOverToken(node));//MAINTK属于终结符
     node->addChild(parseOverToken(node));//LPARENT属于终结符
-    if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+    if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
         FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+        node->addChild(createTokenForLess(node,")"));
+    }
     else
         node->addChild(parseOverToken(node));//RPARENT属于终结符
     node->addChild(parseBlock(node));
@@ -252,8 +265,10 @@ Node *Parser::parseFuncFParam(Node *parent) {
     node->addChild(parseOverToken(node));//Ident属于终结符
     if(lexer.getOneToken()->tokenType == ConstType::LBRACK) {
         node->addChild(parseOverToken(node));//LBRACK属于终结符
-        if(lexer.getOneToken()->tokenType != ConstType::RBRACK)
+        if(lexer.getOneToken()->tokenType != ConstType::RBRACK) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"k");
+            node->addChild(createTokenForLess(node,"]"));
+        }
         else
             node->addChild(parseOverToken(node));//RBRACK属于终结符
     }
@@ -323,18 +338,24 @@ Node *Parser::parseStmt(Node *parent) {
         lexer.getOneToken()->tokenType == ConstType::GETCHARTK) {
             node->addChild(parseOverToken(node));//GETINTTK或GETCHARTK属于终结符
             node->addChild(parseOverToken(node));//LPARENT属于终结符
-            if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+            if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+                node->addChild(createTokenForLess(node,")"));
+            }
             else
                 node->addChild(parseOverToken(node));//RPARENT属于终结符
-            if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+            if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+                node->addChild(createTokenForLess(node,";"));
+            }
             else
                 node->addChild(parseOverToken(node));//SEMICN属于终结符
         } else {
             node->addChild(parseExp(node));
-            if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+            if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+                node->addChild(createTokenForLess(node,";"));
+            }
             else
                 node->addChild(parseOverToken(node));//SEMICN属于终结符
         }
@@ -343,8 +364,10 @@ Node *Parser::parseStmt(Node *parent) {
         node->addChild(parseOverToken(node));//IFTK属于终结符
         node->addChild(parseOverToken(node));//LPARENT属于终结符
         node->addChild(parseCond(node));
-        if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+        if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+            node->addChild(createTokenForLess(node,")"));
+        }
         else
             node->addChild(parseOverToken(node));//RPARENT属于终结符
         node->addChild(parseStmt(node));
@@ -374,15 +397,19 @@ Node *Parser::parseStmt(Node *parent) {
     }
     else if (lexer.getOneToken()->tokenType == ConstType::BREAKTK) { //break
         node->addChild(parseOverToken(node));//BREAKTK属于终结符
-        if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+        if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+            node->addChild(createTokenForLess(node,";"));
+        }
         else
             node->addChild(parseOverToken(node));//SEMICN属于终结符
     }
     else if (lexer.getOneToken()->tokenType == ConstType::CONTINUETK) { //continue
         node->addChild(parseOverToken(node));//CONTINUETK属于终结符
-        if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+        if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+            node->addChild(createTokenForLess(node,";"));
+        }
         else
             node->addChild(parseOverToken(node));//SEMICN属于终结符
     }
@@ -392,12 +419,15 @@ Node *Parser::parseStmt(Node *parent) {
             if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
                 node->addChild(parseExp(node));
             }
-            if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+            if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+                node->addChild(createTokenForLess(node,";"));
+            }
             else
                 node->addChild(parseOverToken(node));//SEMICN属于终结符
         } else {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+            node->addChild(createTokenForLess(node,";"));
         }
     }
     else if(lexer.getOneToken()->tokenType == ConstType::PRINTFTK) { //printf
@@ -408,12 +438,16 @@ Node *Parser::parseStmt(Node *parent) {
                 node->addChild(parseOverToken(node));//COMMA属于终结符
                 node->addChild(parseExp(node));
             }
-        if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+        if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+            node->addChild(createTokenForLess(node,")"));
+        }
         else
             node->addChild(parseOverToken(node));//RPARENT属于终结符
-        if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+        if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+            node->addChild(createTokenForLess(node,";"));
+        }
         else
             node->addChild(parseOverToken(node));//SEMICN属于终结符
     }
@@ -422,8 +456,10 @@ Node *Parser::parseStmt(Node *parent) {
     }
     else {
         node->addChild(parseExp(node));
-        if(lexer.getOneToken()->tokenType != ConstType::SEMICN)
+        if(lexer.getOneToken()->tokenType != ConstType::SEMICN) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"i");
+            node->addChild(createTokenForLess(node,";"));
+        }
         else
             node->addChild(parseOverToken(node));//SEMICN属于终结符
     }
@@ -463,8 +499,10 @@ Node *Parser::parsePrimaryExp(Node *parent) {
     if(lexer.getOneToken()->tokenType == ConstType::LPARENT) {
         node->addChild(parseOverToken(node));//LPARENT属于终结符
         node->addChild(parseExp(node));
-        if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+        if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+            node->addChild(createTokenForLess(node,")"));
+        }
         else
             node->addChild(parseOverToken(node));//RPARENT属于终结符
     } else if(lexer.getOneToken()->tokenType == ConstType::IDENFR) {
@@ -506,11 +544,14 @@ Node *Parser::parseUnaryExp(Node *parent) {
             if (lexer.getOneToken()->tokenType == ConstType::SEMICN ||
             lexer.getOneToken() ->tokenType == ConstType::ASSIGN) {
                 FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+                node->addChild(createTokenForLess(node,")"));
             }
             else {
                 node->addChild(parseFuncRParams(node));
-                if(lexer.getOneToken()->tokenType != ConstType::RPARENT)
+                if(lexer.getOneToken()->tokenType != ConstType::RPARENT) {
                     FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"j");
+                    node->addChild(createTokenForLess(node,")"));
+                }
                 else
                     node->addChild(parseOverToken(node));//RPARENT属于终结符
             }
@@ -671,8 +712,10 @@ Node *Parser::parseLVal(Node *parent) {
     if(lexer.getOneToken()->tokenType == ConstType::LBRACK) {
         node->addChild(parseOverToken(node));//LBRACK属于终结符
         node->addChild(parseExp(node));
-        if(lexer.getOneToken()->tokenType != ConstType::RBRACK)
+        if(lexer.getOneToken()->tokenType != ConstType::RBRACK) {
             FileIO::printToFile_Error(lexer.getOneToken(-1)->lineNumber,"k");
+            node->addChild(createTokenForLess(node,"]"));
+        }
         else
             node->addChild(parseOverToken(node));//RBRACK属于终结符
     }
@@ -744,6 +787,12 @@ Node *Parser::parseOverToken(Node *parent) {
     Node *node = new Node(ParsingItem::OverToken, currentToken, parent);
     FileIO::printToFile_Lexer(*currentToken); //输出当前token
     currentToken = lexer.nextToken(); //前进一步
+    return node;
+}
+
+Node * Parser :: createTokenForLess(Node *parent,std::string str) {
+    Token *token = new Token(ConstType::CreateForLessToken,str,0);
+    Node *node = new Node(ParsingItem::OverToken, token, parent);
     return node;
 }
 

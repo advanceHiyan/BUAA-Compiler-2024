@@ -54,6 +54,8 @@ class Parser {
     Node *parseOverToken(Node *parent); //终结符，包括Ident等等
 
     void outPrintTree(Node *node);
+
+    Node *createTokenForLess(Node *parent, std::string str);
 };
 
 

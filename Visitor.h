@@ -23,18 +23,23 @@ class SemanticAnalyzer : public Visitor { // 语义分析
     public:
         void visit(Node *node) override; // 重载visit函数，实现语义分析
     private:
+    OverallSymbolTable *overall_table; // 全局符号表
         std::vector<Symbol*> printf_list; // 用于记录待输出语句及其块号
     void visit_Decl(Node *node, SymbolTable *this_table);
     int block_num = 1;//记录用了多少个块号，只用于建立新符号表，不可用于其它参数
     void visit_def(Node *node, SymbolTable *this_table, std::string char_or_int);
 
-    void visit_FuncDef(Node *func_def, SymbolTable *this_table);
+    void visit_FuncDef(Node *func_def);
 
-    void visit_FParamsAndBlock(Node *func_def, SymbolTable *this_table);
+    void visit_FParamsAndBlock(Node *func_def, FunSymbolTable *this_table);
 
     void visit_Block(Node *block, SymbolTable *this_table);
 
     void visit_Stmt(Node *stmt, SymbolTable *this_table);
+
+    void visit_If_Stmt(Node *stmt, SymbolTable *this_table);
+
+    void visit_For_Stmt(Node *stmt, SymbolTable *this_table);
 };
 
 #endif //COMPILER_VISITOR_H
