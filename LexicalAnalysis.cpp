@@ -62,7 +62,7 @@ std::string Lexer::readCharacterConstant() {
 int Lexer::next() {
     goSpacetoNext();
 
-    if (curPos == content.size()) {
+    if (curPos >= content.size()) {
         curLexType = ConstType::OVERFILE; // 文件结束
         curToken = "";
         return -1;
