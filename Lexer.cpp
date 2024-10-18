@@ -58,7 +58,7 @@ int Lexer::next() {
     canUse = false; //使用这个接口，就无法建立Tokens
     goSpacetoNext();
 
-    if (curPos == content.size()) {
+    if (curPos >= content.size()) {
         curLexType = ConstType::OVERFILE; // 文件结束
         curToken = "";
         return -1;
@@ -151,7 +151,7 @@ void Lexer:: goSpacetoNext() {
         curPos++; // 忽略空白字符
     }
 
-    if(content[curPos] == '/' && curPos + 1 < content.size() && content[curPos + 1] == '/') {
+    if(curPos < content.size() && content[curPos] == '/' && curPos + 1 < content.size() && content[curPos + 1] == '/') {
         // 注释
         while (curPos < content.size() && content[curPos] != '\n') {
             curPos++;
@@ -160,7 +160,7 @@ void Lexer:: goSpacetoNext() {
         curPos++;
         goSpacetoNext();
     }
-    else if(content[curPos] == '/' && curPos + 1 < content.size() && content[curPos + 1] == '*') {
+    else if(curPos < content.size() && content[curPos] == '/' && curPos + 1 < content.size() && content[curPos + 1] == '*') {
         // 注释
         curPos += 2;
         while (curPos < content.size() && !(content[curPos] == '*' && curPos + 1 < content.size() && content[curPos + 1] == '/')) {
@@ -176,18 +176,20 @@ void Lexer:: goSpacetoNext() {
 }
 
 bool Lexer::buildTokens() { //构建接口2
-    if(!canUse) {
-        return false;
-    }
     allTokens = new std::vector<Token *>();
-    next();
-    while (curLexType != ConstType::OVERFILE) {
-        Token *token = new Token(curLexType,curToken,lineNum);
-        allTokens->push_back(token);
+        if(!canUse) {
+            return false;
+        }
+
         next();
-    }
-    allTokens->push_back(new Token(ConstType::OVERFILE, "", -1));
-    return true;
+        while (curLexType != ConstType::OVERFILE) {
+            Token *token = new Token(curLexType,curToken,lineNum);
+            allTokens->push_back(token);
+            next();
+        }
+        allTokens->push_back(new Token(ConstType::OVERFILE, "", -1));
+        return true;
+
 }
 
 Token * Lexer:: nextToken() {//接口2
