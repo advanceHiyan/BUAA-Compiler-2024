@@ -58,7 +58,7 @@ int Lexer::next() {
     canUse = false; //使用这个接口，就无法建立Tokens
     goSpacetoNext();
 
-    if (curPos == content.size()) {
+    if (curPos >= content.size()) {
         curLexType = ConstType::OVERFILE; // 文件结束
         curToken = "";
         return -1;
