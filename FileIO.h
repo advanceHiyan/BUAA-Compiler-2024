@@ -19,11 +19,13 @@ class FileIO {
     static void printToFile_Grammar(ParsingItem type);
     static void printToFile_Error(int lineNum, string errorMsg);
     static void printToFile_Symbol(std::vector<Symbol*> *printf_list);
+    static std::unordered_map<int , std::string> *errorMap;
 
     int getSys();
     static std::ifstream input;
     static std::ofstream output;
     static std::ofstream error;
+    static std::ofstream symbol;
     static int sysAA;
     //非静态成员与函数只不能实现在.h内类外，还可以在.h外或者类内
     //静态成员和函数只能实现在.h外

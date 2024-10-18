@@ -10,24 +10,29 @@ Parser::Parser(Lexer &lexer) : lexer(lexer) {
 }
 
 Node *Parser::parse() {
-    lexer.buildTokens();
-    return parseCompUnit();
+        lexer.buildTokens();
+        return parseCompUnit();
 }
 
 //编译单元 CompUnit → {Decl} {FuncDef} MainFuncDef
 Node *Parser::parseCompUnit() {
-    Node *node = new Node(ParsingItem :: CompUnit, nullptr, nullptr);
-    currentToken = lexer.nextToken();//前进一步
-    while(lexer.getOneToken(1)->tokenType != ConstType::MAINTK) {
-        if(lexer.getOneToken(2)->tokenType == ConstType::LPARENT) {
-            node->addChild(parseFuncDef(node));
-        } else {
-            node->addChild(parseDecl(node));
+    try {
+        Node *node = new Node(ParsingItem :: CompUnit, nullptr, nullptr);
+        currentToken = lexer.nextToken();//前进一步
+        while(lexer.getOneToken(1)->tokenType != ConstType::MAINTK) {
+            if(lexer.getOneToken(2)->tokenType == ConstType::LPARENT) {
+                node->addChild(parseFuncDef(node));
+            } else {
+                node->addChild(parseDecl(node));
+            }
         }
+        node->addChild(parseMainFuncDef(node));
+        outPrintTree(node);
+        return node;
+    } catch (...) {
+        cout << "Error: parseCompUnit" << endl;
+        return  new Node(ParsingItem :: CompUnit, nullptr, nullptr);
     }
-    node->addChild(parseMainFuncDef(node));
-    outPrintTree(node);
-    return node;
 }
 
 //声明 Decl → ConstDecl | VarDecl
@@ -791,7 +796,7 @@ Node *Parser::parseOverToken(Node *parent) {
 }
 
 Node * Parser :: createTokenForLess(Node *parent,std::string str) {
-    Token *token = new Token(ConstType::CreateForLessToken,str,0);
+    Token *token = new Token(ConstType::CreateForLessToken,str,-1);
     Node *node = new Node(ParsingItem::OverToken, token, parent);
     return node;
 }

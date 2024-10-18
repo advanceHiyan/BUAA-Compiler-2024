@@ -11,6 +11,10 @@
 std::ifstream FileIO::input = std::ifstream ("testfile.txt");
 std::ofstream FileIO::output = std::ofstream ("parser.txt");
 std::ofstream FileIO::error = std::ofstream ("error.txt");
+std::ofstream FileIO::symbol = std::ofstream ("symbol.txt");
+std::unordered_map<int, std::string>* FileIO::errorMap = new std::unordered_map<int, std::string>;
+//额外的初始化
+
 
 std::string FileIO:: openFile() {
     if (!input.is_open()) {
@@ -40,7 +44,6 @@ bool greaterThan(Symbol* a, Symbol* b) {//交换参数不能同时为真
 }
 
 void FileIO::printToFile_Symbol(std::vector<Symbol*> *printf_list) {
-    FileIO::output = std::ofstream ("symbol.txt");
     std::stable_sort((*printf_list).begin(), (*printf_list).end(), greaterThan);//换个方法
     for (auto symbol : (*printf_list)) {
     std::string typeStr;
@@ -57,7 +60,7 @@ void FileIO::printToFile_Symbol(std::vector<Symbol*> *printf_list) {
         case SymbolType::CharFunc: typeStr = "CharFunc"; break;
         case SymbolType::IntFunc: typeStr = "IntFunc"; break;
     }
-    FileIO::output<< symbol->blockNum << " " << symbol->name << " " << typeStr << std::endl;
+    FileIO::symbol<< symbol->blockNum << " " << symbol->name << " " << typeStr << std::endl;
     }
 }
 
@@ -110,7 +113,21 @@ void FileIO::printToFile_Grammar(ParsingItem type) {
 }
 
 void FileIO:: printToFile_Error(int lineNum, std::string errorMsg) {
-    error << lineNum << " " << errorMsg << std::endl;
+    if(errorMsg == "fuck !") {
+        int num = (*FileIO::errorMap).size();
+        int i = 0;
+        int outputNum = 0;
+        while(outputNum < num) {
+            if((*FileIO::errorMap)[i] != "") {
+                error<< i << " " << (*FileIO::errorMap)[i] << std::endl;
+                outputNum++;
+            }
+            i++;
+        }
+    } else {
+        (*FileIO::errorMap)[lineNum] = errorMsg;
+    }
+//    error << lineNum << " " << errorMsg << std::endl;
 }
 
 void FileIO ::printToFile_Lexer(Token token) {
@@ -169,5 +186,6 @@ void FileIO ::printToFile_Lexer(Token token) {
     }
     output << " "<< tokenValue << std ::endl;
 }
+
 
 

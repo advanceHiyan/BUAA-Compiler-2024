@@ -12,8 +12,6 @@ int main() {
     Node* root = parser.parse();
     SemanticAnalyzer semanticAnalyzer;
     semanticAnalyzer.visit(root);
-
-
     FileIO::closeFile();
     return 0;
 }

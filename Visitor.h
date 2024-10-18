@@ -40,6 +40,41 @@ class SemanticAnalyzer : public Visitor { // 语义分析
     void visit_If_Stmt(Node *stmt, SymbolTable *this_table);
 
     void visit_For_Stmt(Node *stmt, SymbolTable *this_table);
+
+    void visit_LVal(Node *lval, SymbolTable *this_table);
+
+    void detecting_printf_errors(Node *stmt, SymbolTable *this_table);
+
+    void visit_Cond(Node *cond, SymbolTable *this_table);
+
+    void visit_Exp_or_ConstExp(Node *exp, SymbolTable *this_table);
+
+    void visit_InitVal(Node *init_val, SymbolTable *this_table);
+
+    void visit_AddExp(Node *add_exp, SymbolTable *this_table);
+
+    void visit_MulExp(Node *mulexp, SymbolTable *this_table);
+
+    void visit_Unary(Node *unary, SymbolTable *this_table);
+
+    void visit_PrimaryExp(Node *primary_exp, SymbolTable *this_table);
+
+    void visit_LOrExp(Node *lor_exp, SymbolTable *this_table);
+
+    void visit_LAndExp(Node *land_exp, SymbolTable *this_table);
+
+    void visit_EqExp(Node *eq_exp, SymbolTable *this_table);
+
+    void visit_RelExp(Node *rel_exp, SymbolTable *this_table);
+
+    void visit_LVal_without_assign(Node *lval, SymbolTable *this_table);
+
+    void detectingFunReturnErrors(Node *block, SymbolTable *this_table);
+
+    void detectingFunRParamsErrors(Node *unaryExp, int line_num, std::vector<SymbolType> *params
+                                   ,SymbolTable * this_table);
+
+    int getExpFunType(Node *exp, SymbolTable *this_table);
 };
 
 #endif //COMPILER_VISITOR_H

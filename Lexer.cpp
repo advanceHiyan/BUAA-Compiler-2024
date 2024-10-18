@@ -180,7 +180,6 @@ bool Lexer::buildTokens() { //构建接口2
         if(!canUse) {
             return false;
         }
-
         next();
         while (curLexType != ConstType::OVERFILE) {
             Token *token = new Token(curLexType,curToken,lineNum);

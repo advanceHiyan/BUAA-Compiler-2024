@@ -39,11 +39,75 @@ class SymbolTable {
             symbols[name] = symbol;
         };
 
-        bool findSymbolInThis(std::string name) {
+        bool findSymbolInThis(std::string name) {//在当前符号表中查找，不查Fun
             if (symbols.find(name)!= symbols.end()) {
                 return true;
             }
             return false;
+        }
+
+        bool isInFor() {
+            if (tableType == TableType::ForBlock) {
+                return true;
+            } else {
+                if(lowerFloorTable== nullptr) {
+                    return false;
+                }
+                return lowerFloorTable->isInFor();
+            }
+        }
+
+        int isReturnFun() {
+            if (tableType == TableType::IntFunc || tableType == TableType::CharFunc) {
+                return 1;
+            } else if(tableType == TableType::VoidFunc) {
+                return 2;
+            } else {
+                if(lowerFloorTable== nullptr) {
+                    return -1;
+                }
+                return lowerFloorTable->isReturnFun();
+            }
+        }
+
+        int findSymbolInUpperFloor(std::string name) {
+            if (symbols.find(name)!= symbols.end()) {
+                if(symbols[name] ->type == SymbolType::ConstCharArray || symbols[name] ->type == SymbolType::ConstIntArray
+                || symbols[name] ->type == SymbolType::ConstChar || symbols[name] ->type == SymbolType::ConstInt) {
+                    return 2;//常量
+                } else if(symbols[name] ->type == SymbolType::Int || symbols[name] ->type == SymbolType::Char ||
+                symbols[name] ->type == SymbolType::IntArray || symbols[name] ->type == SymbolType::CharArray) {
+                    return 1;//变量
+                }
+                return 0;//函数
+            }
+            if(lowerFloorTable== nullptr) {
+                return -1;
+            }
+            return lowerFloorTable->findSymbolInUpperFloor(name);
+        }
+
+        int getSymbolFunType(std ::string name) {
+            std::cout<<"jhghg" << std::endl;
+            int ret = -1;
+            if (symbols.find(name)!= symbols.end()) {
+                if(symbols[name] ->type == SymbolType::Int || symbols[name] ->type == SymbolType::Char
+                || symbols[name] ->type == SymbolType::ConstInt || symbols[name] ->type == SymbolType::ConstChar
+                || symbols[name] ->type == SymbolType::IntFunc || symbols[name] ->type == SymbolType::CharFunc) {
+                    return 0;
+                }
+                if(symbols[name] ->type == SymbolType::IntArray || symbols[name] ->type == SymbolType::ConstIntArray) {
+                    return 1;
+                }
+                if(symbols[name] ->type == SymbolType::CharArray || symbols[name] ->type == SymbolType::ConstCharArray) {
+                    return 2;
+                }
+                return -1;
+            }
+            if(lowerFloorTable== nullptr) {
+                return -1;
+            }
+            return lowerFloorTable->getSymbolFunType(name);
         }
 
 protected:
@@ -65,12 +129,21 @@ public:
     std::unordered_map<std::string, FunSymbolTable*> funTables;
     //override函数，那么父类必须是虚函数。当然也可以不用virtual和override，但是那样重写，
     // 如果指针是父类指针，对象是子类对象，会导致调用父类的函数，而不是子类的函数。
-    bool addFunTable(std::string name, FunSymbolTable *funTable) {
-        if (funTables.find(name) == funTables.end()) {
+    bool addFunTable(std::string name,Symbol *symbol ,FunSymbolTable *funTable) {
+        if (funTables.find(name) == funTables.end() && !findSymbolInThis(name)) {
             funTables[name] = funTable;
+            symbols[name] = symbol;
             return true;
         }
         return false;
+    }
+
+    std::vector<SymbolType>* findFunType(std::string name) {
+        if (funTables.find(name) != funTables.end()) {
+            return &funTables[name]->paramTypes;
+        }
+        std :: cout << "error: function " << name << " not found" << std:: endl;
+        return nullptr;
     }
 };
 
