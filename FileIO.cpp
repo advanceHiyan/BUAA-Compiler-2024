@@ -28,6 +28,7 @@ std::string FileIO:: openFile() {
 }
 
 void FileIO:: closeFile() {
+    FileIO::printToFile_Error(-1,"fuck !");
     input.close();
     output.close();
     error.close();

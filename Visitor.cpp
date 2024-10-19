@@ -29,7 +29,6 @@ void SemanticAnalyzer::visit(Node *node) {
         }
     }
     FileIO::printToFile_Symbol(&printf_list);
-    FileIO::printToFile_Error(-1,"fuck !");
 }
 
 //函数定义 FuncDef → FuncType Ident '(' [FuncFParams] ')' Block

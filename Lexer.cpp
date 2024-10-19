@@ -14,8 +14,19 @@ Lexer::Lexer(std::string &content, const std::unordered_map<ReservedWord, ConstT
 
 std::string Lexer::readIdentifierOrKeyword() {
     std::string token;
+    std::string  copyToken;
     while (curPos < content.size() && std::isalnum(content[curPos]) || content[curPos] == '_') {
+        char ch = content[curPos];//std::isalnum字母数字
+        if (std::isalpha(ch)) { //字母
+            copyToken += std::tolower(ch);
+        }
+        else {
+            copyToken += ch;
+        }
         token += content[curPos++];
+    }
+    if(copyToken == "main" || copyToken == "int" || copyToken == "char" || copyToken == "const" || copyToken == "if" || copyToken == "else" || copyToken == "for" || copyToken == "return" || copyToken == "break" || copyToken == "continue" || copyToken == "getchar" || copyToken == "getint" || copyToken == "printf"  || copyToken == "void") {
+        return copyToken;
     }
     return token;
 }
@@ -156,8 +167,10 @@ void Lexer:: goSpacetoNext() {
         while (curPos < content.size() && content[curPos] != '\n') {
             curPos++;
         }
-        lineNum++;
-        curPos++;
+        if(curPos < content.size()) {
+            lineNum++;
+            curPos++;
+        }
         goSpacetoNext();
     }
     else if(curPos < content.size() && content[curPos] == '/' && curPos + 1 < content.size() && content[curPos + 1] == '*') {
@@ -169,7 +182,9 @@ void Lexer:: goSpacetoNext() {
             }
             curPos++;
         }
-        curPos += 2;
+        if(curPos < content.size() ) {
+            curPos += 2;
+        }
         goSpacetoNext();
     }
     return ;
