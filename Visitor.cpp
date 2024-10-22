@@ -24,8 +24,8 @@ void SemanticAnalyzer::visit(Node *node) {
             SymbolTable *main_table = new SymbolTable("main", overall_table,
                                                       block_num++,TableType::IntFunc);
             int i = child->children.size() - 1;
-            visit_Block(child->children[i], main_table);
-            detectingFunReturnErrors(child->children[i],main_table);
+            visit_Block(child->children.at(i), main_table);
+            detectingFunReturnErrors(child->children.at(i),main_table);
         }
     }
     FileIO::printToFile_Symbol(&printf_list);
@@ -34,9 +34,9 @@ void SemanticAnalyzer::visit(Node *node) {
 //函数定义 FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
 //函数类型 FuncType → 'void' | 'int' | 'char'// 覆盖三种类型的函数
 void SemanticAnalyzer::visit_FuncDef(Node *func_def) {
-    Token *token = func_def->children[1]->token;
+    Token *token = func_def->children.at(1)->token;
     std::string func_name = token->tokenValue;
-    std::string void_int_char_str = func_def->children[0]->children[0]->token->tokenValue;
+    std::string void_int_char_str = func_def->children.at(0)->children.at(0)->token->tokenValue;
     SymbolType func_type = void_int_char_str =="void"? SymbolType::VoidFunc : (void_int_char_str ==
             "int"? SymbolType::IntFunc : SymbolType::CharFunc);
     TableType tableType = void_int_char_str =="void"? TableType::VoidFunc : (void_int_char_str ==
@@ -58,13 +58,13 @@ void SemanticAnalyzer::visit_FuncDef(Node *func_def) {
 //基本类型 BType → 'int' | 'char' // 覆盖两种数据类型的定义
 void SemanticAnalyzer::visit_FParamsAndBlock(Node *func_def, FunSymbolTable *this_table) {
     for (int i = 2; i < func_def->children.size(); i++) {
-        if (func_def->children[i]->parsingItem == ParsingItem::FuncFParams) {
-            Node *fparams = func_def->children[i];
+        if (func_def->children.at(i)->parsingItem == ParsingItem::FuncFParams) {
+            Node *fparams = func_def->children.at(i);
             for(int j = 0; j < fparams->children.size(); j++) {
-                if(fparams->children[j]->parsingItem == ParsingItem::FuncFParam) {
-                    Node *fparam = fparams->children[j];
-                    std::string  char_or_int = fparam->children[0]->children[0]->token->tokenValue;
-                    std::string name = fparam->children[1]->token->tokenValue;
+                if(fparams->children.at(j)->parsingItem == ParsingItem::FuncFParam) {
+                    Node *fparam = fparams->children.at(j);
+                    std::string  char_or_int = fparam->children.at(0)->children.at(0)->token->tokenValue;
+                    std::string name = fparam->children.at(1)->token->tokenValue;
                     if(fparam->children.size() == 2) {
                         cout << "FuncFParam: " << char_or_int << " " << name << endl;
                         SymbolType type =  char_or_int == "int"  ? SymbolType::Int : SymbolType::Char;
@@ -72,7 +72,7 @@ void SemanticAnalyzer::visit_FParamsAndBlock(Node *func_def, FunSymbolTable *thi
                         printf_list.push_back(symbol);
                         this_table->paramTypes.push_back(type);
                         if(this_table->findSymbolInThis(name)) {
-                            int line_num = fparam->children[1]->token->lineNumber;
+                            int line_num = fparam->children.at(1)->token->lineNumber;
                             FileIO::printToFile_Error(line_num,"b");//参数名重定义
                         }
                         this_table->addSymbol(symbol->name,symbol);
@@ -82,7 +82,7 @@ void SemanticAnalyzer::visit_FParamsAndBlock(Node *func_def, FunSymbolTable *thi
                         Symbol *symbol = new Symbol(name,type,this_table->BlockNum);
                         printf_list.push_back(symbol);
                         if(this_table->findSymbolInThis(name)) {
-                            int line_num = fparam->children[1]->token->lineNumber;
+                            int line_num = fparam->children.at(1)->token->lineNumber;
                             FileIO::printToFile_Error(line_num,"b");//参数名重定义
                         }
                         this_table->paramTypes.push_back(type);
@@ -90,25 +90,25 @@ void SemanticAnalyzer::visit_FParamsAndBlock(Node *func_def, FunSymbolTable *thi
                     }
                 }
             }
-        } else if (func_def->children[i]->parsingItem == ParsingItem::Block) {
-            visit_Block(func_def->children[i], this_table);
-            detectingFunReturnErrors(func_def->children[i], this_table);
+        } else if (func_def->children.at(i)->parsingItem == ParsingItem::Block) {
+            visit_Block(func_def->children.at(i), this_table);
+            detectingFunReturnErrors(func_def->children.at(i), this_table);
         }
     }
 }
 
 void SemanticAnalyzer::detectingFunReturnErrors(Node *block, SymbolTable *this_table) {
-    if(block ->children.size() == 2 || block->children[block->children.size() - 2] ->children[0] -> parsingItem
+    if(block ->children.size() == 2 || block->children.at(block->children.size() - 2) ->children.at(0) -> parsingItem
     == ParsingItem::Decl) {
         if(this_table->tableType != TableType::VoidFunc) {
-            int line_num = block ->children[block ->children.size() - 1]->token->lineNumber;
+            int line_num = block ->children.at(block ->children.size() - 1)->token->lineNumber;
             FileIO::printToFile_Error(line_num,"g");
         }
     } else {
-        Node *stmt = block->children[block->children.size() - 2] ->children[0];
-        if(stmt->children[0]->token == nullptr || stmt->children[0]->token->tokenValue != "return") {
+        Node *stmt = block->children.at(block ->children.size() - 2) ->children.at(0);
+        if(stmt->children.at(0)->token == nullptr || stmt->children.at(0)->token->tokenValue != "return") {
             if(this_table->tableType != TableType::VoidFunc) {
-                int line_num = block ->children[block ->children.size() - 1]->token->lineNumber;
+                int line_num = block ->children.at(block ->children.size() - 1)->token->lineNumber;
                 FileIO::printToFile_Error(line_num,"g");
             }
         }
@@ -119,8 +119,8 @@ void SemanticAnalyzer::detectingFunReturnErrors(Node *block, SymbolTable *this_t
 //语句块项 BlockItem → Decl | Stmt
 void SemanticAnalyzer::visit_Block(Node *block, SymbolTable *this_table) {
     for(int i = 1; i < block->children.size()-1; i++) {
-        if(block->children[i]->parsingItem == ParsingItem::BlockItem) {
-            Node *decl_or_stmt = block->children[i] ->children[0];
+        if(block->children.at(i)->parsingItem == ParsingItem::BlockItem) {
+            Node *decl_or_stmt = block->children.at(i) ->children.at(0);
             if(decl_or_stmt->parsingItem == ParsingItem::Decl) {
                 visit_Decl(decl_or_stmt, this_table);
             } else {
@@ -143,45 +143,45 @@ void SemanticAnalyzer::visit_Block(Node *block, SymbolTable *this_table) {
 //| LVal '=' 'getchar''('')'';'
 //| 'printf''('StringConst {','Exp}')'';' // 1.有Exp 2.无Exp
 void SemanticAnalyzer::visit_Stmt(Node *stmt, SymbolTable *this_table) {
-    if(stmt->children.size() == 1 && stmt->children[0]->parsingItem == ParsingItem::OverToken) {//;
+    if(stmt->children.size() == 1 && stmt->children.at(0)->parsingItem == ParsingItem::OverToken) {//;
         return;//空语句
-    } else if(stmt->children[0]->parsingItem == ParsingItem::Block) {//if{}else{} 空{}
+    } else if(stmt->children.at(0)->parsingItem == ParsingItem::Block) {//if{}else{} 空{}
         SymbolTable *new_table = new SymbolTable("emptyTable", this_table,
                                                  block_num++,TableType::EmptyBlock);
-        visit_Block(stmt->children[0], new_table);
-    } else if (stmt->children[0]->parsingItem == ParsingItem::LVal) {
-        if(stmt->children[2] ->parsingItem == ParsingItem::Exp) {//LVal = Exp;
-            visit_LVal(stmt->children[0], this_table);
-            visit_Exp_or_ConstExp(stmt->children[2], this_table);
+        visit_Block(stmt->children.at(0), new_table);
+    } else if (stmt->children.at(0)->parsingItem == ParsingItem::LVal) {
+        if(stmt->children.at(2) ->parsingItem == ParsingItem::Exp) {//LVal = Exp;
+            visit_LVal(stmt->children.at(0), this_table);
+            visit_Exp_or_ConstExp(stmt->children.at(2), this_table);
         } else {//LVal = getint();LVal = getchar();
-            visit_LVal(stmt->children[0], this_table);
+            visit_LVal(stmt->children.at(0), this_table);
         }
-    } else if(stmt ->children[0] ->parsingItem == ParsingItem::Exp) {//exp;
-        visit_Exp_or_ConstExp(stmt->children[0], this_table);
-    } else if(stmt->children[0]->token != nullptr && stmt->children[0]->token->tokenValue == "if") {
+    } else if(stmt ->children.at(0) ->parsingItem == ParsingItem::Exp) {//exp;
+        visit_Exp_or_ConstExp(stmt->children.at(0), this_table);
+    } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "if") {
         visit_If_Stmt(stmt, this_table);
-    } else if(stmt->children[0]->token != nullptr && stmt->children[0]->token->tokenValue == "for") {
+    } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "for") {
         visit_For_Stmt(stmt, this_table);
-    } else if(stmt->children[0]->token != nullptr && (stmt->children[0]->token->
-    tokenValue == "continue" ||stmt->children[0]->token->tokenValue == "break")) {
+    } else if(stmt->children.at(0)->token != nullptr && (stmt->children.at(0)->token->
+    tokenValue == "continue" ||stmt->children.at(0)->token->tokenValue == "break")) {
         if(!this_table->isInFor()) {
-            int line_num = stmt->children[0]->token->lineNumber;
+            int line_num = stmt->children.at(0)->token->lineNumber;
             FileIO::printToFile_Error(line_num,"m");//continue/break语句不在for循环中
         }
-    } else if(stmt->children[0]->token != nullptr && stmt->children[0]->token->tokenValue == "return") {
+    } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "return") {
         int ret = this_table->isReturnFun();
         if(ret == -1) {//no
-            int line_num = stmt->children[0]->token->lineNumber;
+            int line_num = stmt->children.at(0)->token->lineNumber;
             FileIO::printToFile_Error(line_num,"f");//return语句不在函数中
         } else if(ret == 2 && stmt->children.size() > 2) {
-            int line_num = stmt->children[0]->token->lineNumber;
+            int line_num = stmt->children.at(0)->token->lineNumber;
             FileIO::printToFile_Error(line_num,"f");//return语句不在函数中
         }
-    } else if(stmt->children[0]->token != nullptr && stmt->children[0]->token->tokenValue == "printf") {
+    } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "printf") {
         detecting_printf_errors(stmt, this_table);
         for(int i = 2; i < stmt->children.size(); i++) {
-            if(stmt->children[i]->parsingItem == ParsingItem::Exp) {
-                visit_Exp_or_ConstExp(stmt->children[i], this_table);
+            if(stmt->children.at(i)->parsingItem == ParsingItem::Exp) {
+                visit_Exp_or_ConstExp(stmt->children.at(i), this_table);
             }
         }
     }
@@ -195,19 +195,19 @@ void SemanticAnalyzer::visit_Stmt(Node *stmt, SymbolTable *this_table) {
 void SemanticAnalyzer::visit_For_Stmt(Node *stmt, SymbolTable *this_table) {
     int i = 2;
     while(i < stmt ->children.size()) {
-        if(stmt->children[i]->parsingItem == ParsingItem::ForStmt) {
-            visit_LVal(stmt->children[i] ->children[0], this_table);
-            visit_Exp_or_ConstExp(stmt->children[i] ->children[2], this_table);
-        } else if (stmt->children[i]->parsingItem == ParsingItem::Stmt) {
-            if(stmt->children[i]->children[0] ->parsingItem == ParsingItem::Block) {
+        if(stmt->children.at(i)->parsingItem == ParsingItem::ForStmt) {
+            visit_LVal(stmt->children.at(i) ->children.at(0), this_table);
+            visit_Exp_or_ConstExp(stmt->children.at(i) ->children.at(2), this_table);
+        } else if (stmt->children.at(i)->parsingItem == ParsingItem::Stmt) {
+            if(stmt->children.at(i)->children.at(0) ->parsingItem == ParsingItem::Block) {
                 SymbolTable *new_table = new SymbolTable("forTable", this_table,
                                                          block_num++,TableType::ForBlock);
-                visit_Block(stmt->children[i]->children[0], new_table);
+                visit_Block(stmt->children.at(i)->children.at(0), new_table);
             } else {
-                visit_Stmt(stmt->children[i], this_table);
+                visit_Stmt(stmt->children.at(i), this_table);
             }
-        } else if(stmt->children[i]->parsingItem == ParsingItem::Cond) {
-            visit_Cond(stmt->children[i], this_table);
+        } else if(stmt->children.at(i)->parsingItem == ParsingItem::Cond) {
+            visit_Cond(stmt->children.at(i), this_table);
         }
         i += 1;
     }
@@ -215,7 +215,7 @@ void SemanticAnalyzer::visit_For_Stmt(Node *stmt, SymbolTable *this_table) {
 
 //左值表达式 LVal → Ident ['[' Exp ']']
 void SemanticAnalyzer::visit_LVal(Node *lval, SymbolTable *this_table) {
-    Node *ident = lval->children[0];
+    Node *ident = lval->children.at(0);
     std::string name = ident->token->tokenValue;
 
     int line_num = ident->token->lineNumber;
@@ -226,7 +226,7 @@ void SemanticAnalyzer::visit_LVal(Node *lval, SymbolTable *this_table) {
         FileIO::printToFile_Error(line_num,"h");
     }
     if(lval->children.size() > 1) {
-        visit_Exp_or_ConstExp(lval->children[2], this_table);
+        visit_Exp_or_ConstExp(lval->children.at(2), this_table);
     }
 }
 
@@ -243,19 +243,19 @@ int countOccurrences(const std::string& str, const std::string& subStr) {
 
 void SemanticAnalyzer::visit_InitVal(Node *init_val, SymbolTable *this_table) {
     for(int i = 0; i < init_val->children.size(); i++) {
-        if(init_val->children[i]->parsingItem == ParsingItem::ConstExp ||
-        init_val->children[i]->parsingItem == ParsingItem ::Exp ) {
-            visit_Exp_or_ConstExp(init_val->children[i], this_table);
+        if(init_val->children.at(i)->parsingItem == ParsingItem::ConstExp ||
+        init_val->children.at(i)->parsingItem == ParsingItem ::Exp ) {
+            visit_Exp_or_ConstExp(init_val->children.at(i), this_table);
         }
     }
 }
 
 //| 'printf''('StringConst {','Exp}')'';' // 1.有Exp 2.无Exp
 void SemanticAnalyzer::detecting_printf_errors(Node *stmt, SymbolTable *this_table) {
-    std::string string_const = stmt->children[2]->token->tokenValue;
+    std::string string_const = stmt->children.at(2)->token->tokenValue;
     int exp_num = (stmt->children.size() - 5) / 2;
     int count = countOccurrences(string_const, "%c") + countOccurrences(string_const, "%d");
-    int line_num = stmt->children[0]->token->lineNumber;
+    int line_num = stmt->children.at(0)->token->lineNumber;
     if(exp_num!= count) {
         FileIO::printToFile_Error(line_num,"l");//printf参数个数错误
     }
@@ -265,10 +265,10 @@ void SemanticAnalyzer::detecting_printf_errors(Node *stmt, SymbolTable *this_tab
 void SemanticAnalyzer::visit_If_Stmt(Node *stmt, SymbolTable *this_table) {
     int i = 1;
     while(i < stmt ->children.size()) {
-        if(stmt->children[i]->parsingItem == ParsingItem::Stmt) {
-            visit_Stmt(stmt->children[i], this_table);//Block可能是{},直接识别为空快，if的块不需要特殊处理
-        } else if(stmt->children[i]->parsingItem == ParsingItem::Cond) {
-            visit_Cond(stmt->children[i], this_table);
+        if(stmt->children.at(i)->parsingItem == ParsingItem::Stmt) {
+            visit_Stmt(stmt->children.at(i), this_table);//Block可能是{},直接识别为空快，if的块不需要特殊处理
+        } else if(stmt->children.at(i)->parsingItem == ParsingItem::Cond) {
+            visit_Cond(stmt->children.at(i), this_table);
         }
         i += 1;
     }
@@ -279,17 +279,17 @@ void SemanticAnalyzer::visit_If_Stmt(Node *stmt, SymbolTable *this_table) {
 //基本类型 BType → 'int' | 'char' // 覆盖两种数据类型的定义
 //变量声明 VarDecl → BType VarDef { ',' VarDef } ';'
 void SemanticAnalyzer::visit_Decl(Node *node, SymbolTable *this_table) {
-    if (node->children[0] ->parsingItem == ParsingItem::ConstDecl) {
-        Node *const_decl = node->children[0];
-        std::string  char_or_int = const_decl->children[1]->children[0]->token->tokenValue;
+    if (node->children.at(0) ->parsingItem == ParsingItem::ConstDecl) {
+        Node *const_decl = node->children.at(0);
+        std::string  char_or_int = const_decl->children.at(1)->children.at(0)->token->tokenValue;
         for (auto const_def : const_decl->children) {
             if(const_def -> parsingItem == ParsingItem::ConstDef) {
                 visit_def(const_def, this_table,char_or_int);
             }
         }
     } else {
-        Node *var_decl = node->children[0];
-        std::string  char_or_int = var_decl->children[0]->children[0]->token->tokenValue;
+        Node *var_decl = node->children.at(0);
+        std::string  char_or_int = var_decl->children.at(0)->children.at(0)->token->tokenValue;
         for (auto var_def : var_decl->children) {
             if (var_def->parsingItem == ParsingItem::VarDef) {
                 visit_def(var_def, this_table,char_or_int);
@@ -302,50 +302,50 @@ void SemanticAnalyzer::visit_Decl(Node *node, SymbolTable *this_table) {
 //变量定义 VarDef → Ident [ '[' ConstExp ']' ] | Ident [ '[' ConstExp ']' ] '='InitVal // 包含普通常量、一维数组定义
 void SemanticAnalyzer::visit_def(Node *node, SymbolTable *this_table,std::string char_or_int) {
     if (node->parsingItem == ParsingItem::ConstDef) {//常量
-        std::string name = node ->children[0] ->token->tokenValue;
-        if(node->children[2]->parsingItem == ParsingItem::ConstExp) {//数组
+        std::string name = node ->children.at(0) ->token->tokenValue;
+        if(node->children.at(2)->parsingItem == ParsingItem::ConstExp) {//数组
             SymbolType type =  char_or_int == "int"  ? SymbolType::ConstIntArray : SymbolType::ConstCharArray;
             Symbol *symbol = new Symbol(name,type,this_table->BlockNum);
             if(this_table->findSymbolInThis(name)) {
-                FileIO::printToFile_Error(node->children[0]->token->lineNumber,"b");//变量名重定义
+                FileIO::printToFile_Error(node->children.at(0)->token->lineNumber,"b");//变量名重定义
             }
             printf_list.push_back(symbol);
             this_table->addSymbol(symbol->name,symbol);
-            visit_Exp_or_ConstExp(node->children[2], this_table);//!!!!!!
+            visit_Exp_or_ConstExp(node->children.at(2), this_table);//!!!!!!
         } else {//不是数组
             SymbolType type =  char_or_int == "int"  ? SymbolType::ConstInt : SymbolType::ConstChar;
             Symbol *symbol = new Symbol(name,type,this_table->BlockNum);
             if(this_table->findSymbolInThis(name)) {
-                FileIO::printToFile_Error(node->children[0]->token->lineNumber,"b");//变量名重定义
+                FileIO::printToFile_Error(node->children.at(0)->token->lineNumber,"b");//变量名重定义
             }
             printf_list.push_back(symbol);
             this_table->addSymbol(symbol->name,symbol);
         }
     } else {//变量
-        std::string name = node ->children[0] ->token->tokenValue;
-        if(node ->children.size() > 1 && node->children[2]->parsingItem == ParsingItem::ConstExp) {//数组
+        std::string name = node ->children.at(0) ->token->tokenValue;
+        if(node ->children.size() > 1 && node->children.at(2)->parsingItem == ParsingItem::ConstExp) {//数组
             //非法指针引发的错误！！！！
             SymbolType type =  char_or_int == "int"  ? SymbolType::IntArray : SymbolType::CharArray;
             Symbol *symbol = new Symbol(name,type,this_table->BlockNum);
             if(this_table->findSymbolInThis(name)) {
-                FileIO::printToFile_Error(node->children[0]->token->lineNumber,"b");//变量名重定义
+                FileIO::printToFile_Error(node->children.at(0)->token->lineNumber,"b");//变量名重定义
             }
             printf_list.push_back(symbol);
             this_table->addSymbol(symbol->name,symbol);
-            visit_Exp_or_ConstExp(node->children[2], this_table);//!!!!!!
+            visit_Exp_or_ConstExp(node->children.at(2), this_table);//!!!!!!
         } else {//不是数组
             SymbolType type =  char_or_int == "int"  ? SymbolType::Int : SymbolType::Char;
             Symbol *symbol = new Symbol(name,type,this_table->BlockNum);
             if(this_table->findSymbolInThis(name)) {
-                FileIO::printToFile_Error(node->children[0]->token->lineNumber,"b");//变量名重定义
+                FileIO::printToFile_Error(node->children.at(0)->token->lineNumber,"b");//变量名重定义
             }
             printf_list.push_back(symbol);
             this_table->addSymbol(symbol->name,symbol);
         }
 
-        if(node->children[node->children.size()-1] ->parsingItem == ParsingItem::InitVal ||
-        node->children[node->children.size()-1] ->parsingItem == ParsingItem::ConstInitVal) {
-            visit_InitVal(node->children[node->children.size()-1], this_table);
+        if(node->children.at(node->children.size()-1) ->parsingItem == ParsingItem::InitVal ||
+        node->children.at(node->children.size()-1) ->parsingItem == ParsingItem::ConstInitVal) {
+            visit_InitVal(node->children.at(node->children.size()-1), this_table);
         } //!!!!!
     }
 }
@@ -353,7 +353,7 @@ void SemanticAnalyzer::visit_def(Node *node, SymbolTable *this_table,std::string
 //表达式 Exp → AddExp // 存在即可
 
 void SemanticAnalyzer::visit_Exp_or_ConstExp(Node *exp, SymbolTable *this_table) {
-    Node *add_exp = exp->children[0];
+    Node *add_exp = exp->children.at(0);
     visit_AddExp(add_exp, this_table);
 }
 
@@ -382,8 +382,8 @@ void SemanticAnalyzer ::visit_MulExp(Node * mulexp,SymbolTable * this_table) {
 //UnaryExp → PrimaryExp | Ident '(' [FuncRParams] ')' | UnaryOp UnaryExp
 //FuncRParams → Exp { ',' Exp }
 void SemanticAnalyzer::visit_Unary(Node * unary,SymbolTable * this_table) {
-    if(unary->children[0]->parsingItem == ParsingItem::OverToken) {//Ident
-        Node * ident = unary->children[0];
+    if(unary->children.at(0)->parsingItem == ParsingItem::OverToken) {//Ident
+        Node * ident = unary->children.at(0);
         int ret = this_table->findSymbolInUpperFloor(ident->token->tokenValue);
         int line_num = ident ->token->lineNumber;
         if(ret == -1) {
@@ -394,7 +394,7 @@ void SemanticAnalyzer::visit_Unary(Node * unary,SymbolTable * this_table) {
         if(funcParams != nullptr) {
             int usedFun_num = 0;
             if(unary->children.size() == 4) {
-                usedFun_num = unary->children[2]->children.size() / 2 + 1;//exp,exp……
+                usedFun_num = unary->children.at(2)->children.size() / 2 + 1;//exp,exp……
             }
             if(usedFun_num != funcParams->size()) {//参数个数不匹配
                 FileIO::printToFile_Error(line_num,"d");
@@ -407,7 +407,7 @@ void SemanticAnalyzer::visit_Unary(Node * unary,SymbolTable * this_table) {
                 }
             }
             if(usedFun_num > 0) {
-                Node *fun_am = unary->children[2];
+                Node *fun_am = unary->children.at(2);
                     for(Node * child : fun_am->children) {
                         if (child->parsingItem == ParsingItem::Exp) {
                             visit_Exp_or_ConstExp(child, this_table);
@@ -435,28 +435,28 @@ void SemanticAnalyzer::visit_Unary(Node * unary,SymbolTable * this_table) {
 //左值表达式 LVal → Ident ['[' Exp ']']
 void SemanticAnalyzer::detectingFunRParamsErrors(Node *unaryExp, int line_num,std::vector<SymbolType> * params,
 SymbolTable * this_table) {
-    Node *ps = unaryExp->children[2];
+    Node *ps = unaryExp->children.at(2);
     for(int i = 0;i < params->size();i++) {
         cout<< params->size() << " " << i << endl;
         cout << "sybtype:"  << endl;
-        Node * add_exp = ps ->children[i * 2] ->children[0];
-        Node *mul_exp = add_exp->children[add_exp->children.size() - 1];
-        Node *uy = mul_exp -> children[mul_exp->children.size() - 1];
+        Node * add_exp = ps ->children.at(i * 2) ->children.at(0);
+        Node *mul_exp = add_exp->children.at(add_exp->children.size() - 1);
+        Node *uy = mul_exp -> children.at(mul_exp->children.size() - 1);
         int used_par = -1;
-        if(uy -> children[0] ->parsingItem == ParsingItem::OverToken) {//变量
+        if(uy -> children.at(0) ->parsingItem == ParsingItem::OverToken) {//变量
             used_par = 0;
-        } else if(uy ->children[0] ->parsingItem == ParsingItem::PrimaryExp) {
-            Node * prim = uy ->children[0];
-            if(prim -> children[0] ->parsingItem == ParsingItem::LVal) {
+        } else if(uy ->children.at(0) ->parsingItem == ParsingItem::PrimaryExp) {
+            Node * prim = uy ->children.at(0);
+            if(prim -> children.at(0) ->parsingItem == ParsingItem::LVal) {
                 cout << "fuck 1 " << endl;
-                Node * lv = prim -> children[0];
-                used_par = this_table ->getSymbolFunType(lv->children[0]->token->tokenValue);
+                Node * lv = prim -> children.at(0);
+                used_par = this_table ->getSymbolFunType(lv->children.at(0)->token->tokenValue);
                 if(lv->children.size() == 4) {
                     used_par = 0;
                 }
-            } else if(prim -> children[0] ->parsingItem == ParsingItem::OverToken) {
+            } else if(prim -> children.at(0) ->parsingItem == ParsingItem::OverToken) {
                 cout << "fuck 2 " << endl;
-                used_par = getExpFunType(prim->children[1], this_table);
+                used_par = getExpFunType(prim->children.at(1), this_table);
             } else {
                 cout << "fuck 3 " << endl;
                 used_par = 0;
@@ -483,22 +483,22 @@ SymbolTable * this_table) {
 }
 
 int SemanticAnalyzer::getExpFunType(Node *exp, SymbolTable *this_table) {
-    Node *add_exp = exp->children[0];
-    Node *mul_exp = add_exp->children[add_exp->children.size() - 1];
-    Node *uy = mul_exp -> children[mul_exp->children.size() - 1];
+    Node *add_exp = exp->children.at(0);
+    Node *mul_exp = add_exp->children.at(add_exp->children.size() - 1);
+    Node *uy = mul_exp -> children.at(mul_exp->children.size() - 1);
     int used_par = -1;
-    if(uy -> children[0] ->parsingItem == ParsingItem::OverToken) {//变量
+    if(uy -> children.at(0) ->parsingItem == ParsingItem::OverToken) {//变量
         used_par = 0;
-    } else if(uy ->children[0] ->parsingItem == ParsingItem::PrimaryExp) {
-        Node * prim = uy ->children[0];
-        if(prim -> children[0] ->parsingItem == ParsingItem::LVal) {
-            Node * lv = prim -> children[0];
-            used_par = this_table ->getSymbolFunType(lv->children[0]->token->tokenValue);
+    } else if(uy ->children.at(0) ->parsingItem == ParsingItem::PrimaryExp) {
+        Node * prim = uy ->children.at(0);
+        if(prim -> children.at(0) ->parsingItem == ParsingItem::LVal) {
+            Node * lv = prim -> children.at(0);
+            used_par = this_table ->getSymbolFunType(lv->children.at(0)->token->tokenValue);
             if(lv->children.size() == 4) {
                 used_par = 0;
             }
-        } else if(prim -> children[0] ->parsingItem == ParsingItem::OverToken) {
-            used_par = getExpFunType(prim->children[1], this_table);
+        } else if(prim -> children.at(0) ->parsingItem == ParsingItem::OverToken) {
+            used_par = getExpFunType(prim->children.at(1), this_table);
         } else {
             used_par = 0;
         }
@@ -522,7 +522,7 @@ void SemanticAnalyzer::visit_PrimaryExp(Node *primary_exp, SymbolTable *this_tab
 
 //左值表达式 LVal → Ident ['[' Exp ']']
 void SemanticAnalyzer::visit_LVal_without_assign(Node *lval, SymbolTable *this_table) {
-    Node *ident = lval->children[0];
+    Node *ident = lval->children.at(0);
     std::string name = ident->token->tokenValue;
 
     int line_num = ident->token->lineNumber;
@@ -531,13 +531,13 @@ void SemanticAnalyzer::visit_LVal_without_assign(Node *lval, SymbolTable *this_t
         FileIO::printToFile_Error(line_num,"c");
     }
     if(lval->children.size() > 1) {
-        visit_Exp_or_ConstExp(lval->children[2], this_table);
+        visit_Exp_or_ConstExp(lval->children.at(2), this_table);
     }
 }
 
 //条件表达式 Cond → LOrExp
 void SemanticAnalyzer::visit_Cond(Node *cond, SymbolTable *this_table) {
-    Node *lor_exp = cond->children[0];
+    Node *lor_exp = cond->children.at(0);
     visit_LOrExp(lor_exp, this_table);
 }
 //逻辑或表达式 LOrExp → LAndExp | LOrExp '||' LAndExp
