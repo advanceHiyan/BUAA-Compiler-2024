@@ -3,8 +3,8 @@
 //
 
 #include "Lexer.h"
-#include "ConstType.h"
-#include "Node.h"
+#include "../fileIO/ConstType.h"
+#include "../parser/Node.h"
 #include <cctype>
 
 Lexer::Lexer(std::string &content, const std::unordered_map<ReservedWord, ConstType>& reserveToConstMap)

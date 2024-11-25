@@ -8,8 +8,8 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
-#include "ConstType.h"
-#include "Node.h"
+#include "../fileIO/ConstType.h"
+#include "../parser/Node.h"
 
 class Lexer {
 private:

@@ -3,7 +3,7 @@
 //
 
 #include "Parser.h"
-#include "FileIO.h"
+#include "../fileIO/FileIO.h"
 
 Parser::Parser(Lexer &lexer) : lexer(lexer) {
     currentToken = nullptr;

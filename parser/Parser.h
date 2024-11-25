@@ -7,8 +7,8 @@
 
 
 #include "Node.h"
-#include "Lexer.h"
-#include "ConstType.h"
+#include "../lexer/Lexer.h"
+#include "../fileIO/ConstType.h"
 class Parser {
     Token *currentToken;
     Lexer &lexer;

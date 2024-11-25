@@ -12,7 +12,9 @@ std::ifstream FileIO::input = std::ifstream ("testfile.txt");
 std::ofstream FileIO::output = std::ofstream ("parser.txt");
 std::ofstream FileIO::error = std::ofstream ("error.txt");
 std::ofstream FileIO::symbol = std::ofstream ("symbol.txt");
+std::ofstream FileIO::result = std::ofstream ("pcoderesult.txt");
 std::unordered_map<int, std::string>* FileIO::errorMap = new std::unordered_map<int, std::string>;
+bool FileIO::hasError = false;
 //额外的初始化
 
 
@@ -28,10 +30,14 @@ std::string FileIO:: openFile() {
 }
 
 void FileIO:: closeFile() {
-    FileIO::printToFile_Error(-1,"fuck !");
+    FileIO::printToFile_Error(-1,"printError");
     input.close();
     output.close();
     error.close();
+}
+
+void FileIO:: printToFile_Result(std::string result) {
+    FileIO::result << result.substr(1,result.size()-2);
 }
 
 bool greaterThan(Symbol* a, Symbol* b) {//交换参数不能同时为真
@@ -114,7 +120,8 @@ void FileIO::printToFile_Grammar(ParsingItem type) {
 }
 
 void FileIO:: printToFile_Error(int lineNum, std::string errorMsg) {
-    if(errorMsg == "fuck !") {
+    hasError = true;
+    if(errorMsg == "printError") {
         int num = (*FileIO::errorMap).size();
         int i = 0;
         int outputNum = 0;

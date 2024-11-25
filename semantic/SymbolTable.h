@@ -7,8 +7,8 @@
 
 #include <string>
 #include <vector>
-#include "ConstType.h"
-
+#include "../fileIO/ConstType.h"
+#include <iostream>
 struct Symbol {
     std::string name;
     SymbolType type;
@@ -22,10 +22,13 @@ struct Symbol {
 };
 
 class SymbolTable {
+    protected:
+        std::unordered_map<std::string, Symbol*> symbols;
+
     public:
         std::string name;
         TableType tableType;
-        SymbolTable *lowerFloorTable;//指向上一层的符号表，一直有用
+        SymbolTable *lowerFloorTable; //指向上一层的符号表，一直有用
         int BlockNum;
 
         SymbolTable(std::string name,SymbolTable *lowerFloorTable, int BlockNum, TableType tableType) {
@@ -87,6 +90,16 @@ class SymbolTable {
             return lowerFloorTable->findSymbolInUpperFloor(name);
         }
 
+        Symbol *getSymbol(std::string name) {
+            if (symbols.find(name)!= symbols.end()) {
+                return symbols[name];
+            }
+            if(lowerFloorTable== nullptr) {
+                return nullptr;
+            }
+            return lowerFloorTable->getSymbol(name);
+        }
+
         int getSymbolFunType(std ::string name) {
             std::cout<<"jhghg" << std::endl;
             int ret = -1;
@@ -110,45 +123,42 @@ class SymbolTable {
             return lowerFloorTable->getSymbolFunType(name);
         }
 
-protected:
-        std::unordered_map<std::string, Symbol*> symbols;
 };
 
 class FunSymbolTable : public SymbolTable {
-public:
-    FunSymbolTable(std::string name, SymbolTable *lowerFloorTable, int BlockNum, TableType tableType) :
-    SymbolTable(name, lowerFloorTable, BlockNum, tableType) {}//不写，默认为（）无参数
-    std::vector<SymbolType> paramTypes;
+    public:
+        FunSymbolTable(std::string name, SymbolTable *lowerFloorTable, int BlockNum, TableType tableType) :
+        SymbolTable(name, lowerFloorTable, BlockNum, tableType) {}//不写，默认为（）无参数
+        std::vector<SymbolType> paramTypes;
 };
 
 class OverallSymbolTable : public SymbolTable {
-public:
-    OverallSymbolTable(std::string name, SymbolTable *lowerFloorTable, int BlockNum, TableType tableType) :
-    SymbolTable(name, lowerFloorTable, BlockNum, tableType) {}//不写，默认为（）无参数
+    public:
+        OverallSymbolTable(std::string name, SymbolTable *lowerFloorTable, int BlockNum, TableType tableType) :
+        SymbolTable(name, lowerFloorTable, BlockNum, tableType) {}//不写，默认为（）无参数
 
-    std::unordered_map<std::string, FunSymbolTable*> funTables;
-    //override函数，那么父类必须是虚函数。当然也可以不用virtual和override，但是那样重写，
-    // 如果指针是父类指针，对象是子类对象，会导致调用父类的函数，而不是子类的函数。
-    bool addFunTable(std::string name,Symbol *symbol ,FunSymbolTable *funTable) {
-        if (funTables.find(name) == funTables.end() && !findSymbolInThis(name)) {
-            funTables[name] = funTable;
-            symbols[name] = symbol;
-            return true;
+        std::unordered_map<std::string, FunSymbolTable*> funTables;
+        //override函数，那么父类必须是虚函数。当然也可以不用virtual和override，但是那样重写，
+        // 如果指针是父类指针，对象是子类对象，会导致调用父类的函数，而不是子类的函数。
+        bool addFunTable(std::string name,Symbol *symbol ,FunSymbolTable *funTable) {
+            if (funTables.find(name) == funTables.end() && !findSymbolInThis(name)) {
+                funTables[name] = funTable;
+                symbols[name] = symbol;
+                return true;
+            }
+            return false;
         }
-        return false;
-    }
 
-    std::vector<SymbolType>* findFunType(std::string name) {
-        if (funTables.find(name) != funTables.end()) {
-            return &funTables[name]->paramTypes;
+        std::vector<SymbolType>* findFunType(std::string name) {
+            if (funTables.find(name) != funTables.end()) {
+                return &funTables[name]->paramTypes;
+            }
+            std :: cout << "error: function " << name << " not found" << std:: endl;
+            return nullptr;
         }
-        std :: cout << "error: function " << name << " not found" << std:: endl;
-        return nullptr;
-    }
 };
 
-//        std::vector<SymbolTable*> upperFloorTables;//只有语义分析有用，后面没用
-//        SymbolTable *prevTable;//指向返回的符号表而不是上一层的符号表,语义分析用不到
+
 //        void setPrevTable(SymbolTable *prevTable) { this->prevTable = prevTable; }
 //        void addUpperFloorTable(SymbolTable *upperFloorTable) { upperFloorTables.push_back(upperFloorTable); }
 

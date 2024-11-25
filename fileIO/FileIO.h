@@ -5,8 +5,8 @@
 #ifndef COMPILER_FILEIO_H
 #define COMPILER_FILEIO_H
 #include "ConstType.h"
-#include "Node.h"
-#include "SymbolTable.h"
+#include "../parser/Node.h"
+#include "../semantic/SymbolTable.h"
 #include <fstream>
 
 using namespace std;
@@ -19,13 +19,16 @@ class FileIO {
     static void printToFile_Grammar(ParsingItem type);
     static void printToFile_Error(int lineNum, string errorMsg);
     static void printToFile_Symbol(std::vector<Symbol*> *printf_list);
+    static void printToFile_Result(string result);
     static std::unordered_map<int , std::string> *errorMap;
+    static bool hasError;
 
     int getSys();
     static std::ifstream input;
     static std::ofstream output;
     static std::ofstream error;
     static std::ofstream symbol;
+    static std::ofstream result;
     static int sysAA;
     //非静态成员与函数只不能实现在.h内类外，还可以在.h外或者类内
     //静态成员和函数只能实现在.h外
