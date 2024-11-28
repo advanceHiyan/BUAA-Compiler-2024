@@ -48,7 +48,7 @@ void ToPcodeVisitor::visit_FuncDef(Node *func_def) {
                                                     block_num++,tableType);
     overall_table->addFunTable(func_name,func_symbol,func_table);
     visit_FParamsAndBlock(func_def, func_table);
-    addCode(CodeType::OVERFUN);
+    addCode(CodeType::EXF);
 }
 
 //函数定义 FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
@@ -140,7 +140,7 @@ void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table) {
     } else if (stmt->children.at(0)->parsingItem == ParsingItem::LVal) {
 
         Symbol *symbol = this_table->getSymbol(stmt->children.at(0)->children.at(0)->token->tokenValue);
-        addCode(CodeType::ADDRESS,std::to_string(symbol->blockNum) + "_" + symbol->name);
+        addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
 
         if(stmt->children.at(2) ->parsingItem == ParsingItem::Exp) {//LVal = Exp;
             visit_LVal(stmt->children.at(0), this_table);
@@ -155,7 +155,7 @@ void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table) {
             }
 
         }
-        addCode(CodeType::POPLVAL);
+        addCode(CodeType::PAL);
 
     } else if(stmt ->children.at(0) ->parsingItem == ParsingItem::Exp) {//exp;
         visit_Exp_or_ConstExp(stmt->children.at(0), this_table);
@@ -237,7 +237,7 @@ void ToPcodeVisitor::visit_InitVal(Node *init_val, SymbolTable *this_table,std::
         }
     }
     if(exp_size >= 1) {
-        addCode(CodeType::PLACESPACE,std::to_string(this_table->BlockNum) + "_" + name, exp_size);
+        addCode(CodeType::EMPTY,std::to_string(this_table->BlockNum) + "_" + name, exp_size);
     } else {
         string strConst = init_val->children.at(0)->token->tokenValue;
         string strPtr = strConst.substr(1, strConst.size() - 2);
@@ -247,30 +247,30 @@ void ToPcodeVisitor::visit_InitVal(Node *init_val, SymbolTable *this_table,std::
             if(strPtr.at(i) == '\\' && i < strPtr.size() - 1) {
                 char c = strPtr.at(i + 1);
                 if (c == 'n') {
-                    addCode(CodeType::PUSHCHAR,  "\n");
+                    addCode(CodeType::LDC,  "\n");
                 } else if (c == 't') {
-                    addCode(CodeType::PUSHCHAR, "\t");
+                    addCode(CodeType::LDC, "\t");
                 } else if (c == 'a') {
-                    addCode(CodeType::PUSHCHAR, "\a");
+                    addCode(CodeType::LDC, "\a");
                 } else if(c == 'b') {
-                    addCode(CodeType::PUSHCHAR,  "\b");
+                    addCode(CodeType::LDC,  "\b");
                 } else if(c == 'f') {
-                    addCode(CodeType::PUSHCHAR,  "\f");
+                    addCode(CodeType::LDC,  "\f");
                 } else if(c == '0') {
-                    addCode(CodeType::PUSHCHAR,+ "\0");
+                    addCode(CodeType::LDC,+ "\0");
                 } else if(c == 'v') {
-                    addCode(CodeType::PUSHCHAR,"\v");
+                    addCode(CodeType::LDC,"\v");
                 } else {
-                    addCode(CodeType::PUSHCHAR, strPtr.substr(i + 1,1));
+                    addCode(CodeType::LDC, strPtr.substr(i + 1,1));
                 }
                 i++;
             } else {
                 //不能用tostring，因为char是int存储。不能用at()，因为char是int存储。
-                addCode(CodeType::PUSHCHAR, (strPtr.substr(i,1)));
+                addCode(CodeType::LDC, (strPtr.substr(i,1)));
             }
             size += 1;
         }
-        addCode(CodeType::PLACESPACE,std::to_string(this_table->BlockNum) + "_" + name, size);
+        addCode(CodeType::EMPTY,std::to_string(this_table->BlockNum) + "_" + name, size);
     }
 }
 
@@ -340,7 +340,7 @@ void ToPcodeVisitor::visit_def(Node *node, SymbolTable *this_table,std::string c
             visit_InitVal(node->children.at(node->children.size()-1), this_table,name);
         } //!!!!!
         else {
-            addCode(CodeType::PLACESPACE,std::to_string(this_table->BlockNum) + "_" + name, 0);
+            addCode(CodeType::EMPTY,std::to_string(this_table->BlockNum) + "_" + name, 0);
         }
     }
 }
@@ -395,7 +395,7 @@ void ToPcodeVisitor ::visit_MulExp(Node * mulexp,SymbolTable * this_table) {
             visit_Unary(child, this_table);
             if(i - 1 >= 0 && mulexp->children.at(i-1)->parsingItem == ParsingItem::OverToken) {
                 if(mulexp->children.at(i-1)->token->tokenValue == "*") {
-                    addCode(CodeType::MULT);
+                    addCode(CodeType::MUL);
                 } else if(mulexp->children.at(i-1)->token->tokenValue == "/") {
                     addCode(CodeType::DIV);
                 } else if(mulexp->children.at(i-1)->token->tokenValue == "%") {
@@ -413,7 +413,7 @@ void ToPcodeVisitor ::visit_MulExp(Node * mulexp,SymbolTable * this_table) {
 //            visit_Unary(child,this_table);
 //        } else if(child -> parsingItem == ParsingItem::OverToken) {
 //            if(child->token->tokenValue == "*") {
-//                addCode(CodeType::MULT);
+//                addCode(CodeType::MUL);
 //            } else if(child->token->tokenValue == "/") {
 //                addCode(CodeType::DIV);
 //            } else if(child->token->tokenValue == "%") {
@@ -439,9 +439,9 @@ void ToPcodeVisitor::visit_Unary(Node * unary,SymbolTable * this_table) {
                 if (child->parsingItem == ParsingItem::Exp) {
                     visit_Exp_or_ConstExp(child, this_table);
                     if(funcParams->at(i) == SymbolType::Int ||funcParams->at(i) == SymbolType::Char) {
-                        addCode(CodeType::APINT);
+                        addCode(CodeType::APR);
                     } else if(funcParams->at(i) == SymbolType::IntArray || funcParams->at(i) == SymbolType::CharArray) {
-                        addCode(CodeType::APINTARRAY);
+                        addCode(CodeType::APA);
                     } else {
                         cout << "error in code prams";
                     }
@@ -449,7 +449,7 @@ void ToPcodeVisitor::visit_Unary(Node * unary,SymbolTable * this_table) {
                 }
             }
         }
-        addCode(CodeType::CALL,ident->token->tokenValue);
+        addCode(CodeType::CAL,ident->token->tokenValue);
     }
     for(int i = 0;i < unary ->children.size() ; i ++ ) {
         Node * child = unary->children.at(i);
@@ -461,7 +461,7 @@ void ToPcodeVisitor::visit_Unary(Node * unary,SymbolTable * this_table) {
             if(unary->children.at(i -1)->parsingItem == ParsingItem::UnaryOp) {
                 cout << "UnaryOp" << endl;
                 if(unary->children.at(i -1)->children.at(0)->token->tokenValue == "-") {
-                    addCode(CodeType::MINU);
+                    addCode(CodeType::MUS);
                 } else if(unary->children.at(i -1)->children.at(0)->token->tokenValue == "!") {
                     addCode(CodeType::NOT);
                 }
@@ -521,10 +521,10 @@ void ToPcodeVisitor::visit_PrimaryExp(Node *primary_exp, SymbolTable *this_table
         } else if(child -> parsingItem == ParsingItem::LVal) {
             visit_LVal_without_assign(child, this_table);
         } else if(child -> parsingItem == ParsingItem::Number) {
-            addCode(CodeType::PUSHINT, std::stoi(child->children.at(0)->token->tokenValue));
+            addCode(CodeType::LDI, std::stoi(child->children.at(0)->token->tokenValue));
         } else if(child -> parsingItem == ParsingItem::Character) {
             std::string value = child->children.at(0)->token->tokenValue;
-            addCode(CodeType::PUSHCHAR, value.substr(1,1));
+            addCode(CodeType::LDC, value.substr(1,1));
         }
     }
 }
@@ -545,10 +545,10 @@ void ToPcodeVisitor::visit_LVal_without_assign(Node *lval, SymbolTable *this_tab
     if((symbol->type == SymbolType::IntArray || symbol->type == SymbolType::CharArray)
         && lval->children.size() == 1) {
         //说明是数组名作为参数，进行特殊处理。
-        addCode(CodeType::VALUE, std ::to_string(symbol->blockNum) + "_"+name,0);
+        addCode(CodeType::LDA, std ::to_string(symbol->blockNum) + "_"+name,0);
     } else {
         //其余的都需要调用数值，即使是a[i]作为参数，也需要传递数值
-        addCode(CodeType::VALUE, std ::to_string(symbol->blockNum) + "_"+name,1);
+        addCode(CodeType::LOD, std ::to_string(symbol->blockNum) + "_"+name);
     }
 }
 

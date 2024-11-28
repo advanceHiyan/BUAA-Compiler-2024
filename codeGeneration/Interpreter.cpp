@@ -23,7 +23,7 @@ Interpreter::Interpreter(std::vector<PCode *> *pCodeList) {
             funNameToPcIndexMap->insert({*strPtr, functInfo});
         } else if (pCodeList -> at(i)->getType() == CodeType::LABEL) {
             // TODO: handle label
-        } else if (pCodeList -> at(i)->getType() == CodeType::OVERFUN &&
+        } else if (pCodeList -> at(i)->getType() == CodeType::EXF &&
         pCodeList -> at(i - 1) -> getType() != CodeType::RET) {
             pCodeList->at(i) = new PCode(CodeType::RET, new int (2));
         }
@@ -35,12 +35,12 @@ void Interpreter::interpret() {
     while (pc < pCodeList -> size()) {
         cout << "pc: " << pc << " code: " << pCodeList -> at(pc)->getCodeStr() <<endl;
         switch(pCodeList -> at(pc)->getType()) {
-            case CodeType::PUSHINT: {
+            case CodeType::LDI: {
                 int value = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue1());
                 programStack->push_back(value);
                 break;
             }
-            case CodeType::PUSHCHAR: {
+            case CodeType::LDC: {
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 programStack->push_back(*strPtr);
                 break;
@@ -69,7 +69,7 @@ void Interpreter::interpret() {
                 tempVarNameToInfoMap->insert({*strPtr, varInfo});
                 break;
             }
-            case CodeType::POPLVAL :{
+            case CodeType::PAL :{
                 std::variant value = pop();
                 int address = std::get<int>(pop());
                 setElement(address, value);
@@ -144,16 +144,16 @@ void Interpreter::interpret() {
                 }
                 break;
             }
-            case CodeType::APINT :{ //已经调用VALUE指令，数值已经放到最新地址,所以目标地址就是栈顶
+            case CodeType::APR :{ //已经调用LOD指令，数值已经放到最新地址,所以目标地址就是栈顶
                 paramStackIndexList->push_back(programStack->size() - 1);
                 break;
             }
-            case CodeType::APINTARRAY :{//已经调用VALUE，把数组的地址放到栈顶，所以目标地址是栈顶的数值。
+            case CodeType::APA :{//已经调用LDA，把数组的地址放到栈顶，所以目标地址是栈顶的数值。
                 int address = std :: get<int>(programStack->at(programStack->size() - 1));
                 paramStackIndexList->push_back(address);
                 break;
             }
-            case CodeType::CALL :{
+            case CodeType::CAL :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 FunctInfo functInfo = funNameToPcIndexMap->at(*strPtr);
                 AR_Info * arInfo = new AR_Info(pc,tempVarNameToInfoMap,
@@ -164,7 +164,7 @@ void Interpreter::interpret() {
                 haveParams = 0;
                 continue;
             }
-            case CodeType::OVERFUN :{
+            case CodeType::EXF :{
                 //done
                 break;
             }
@@ -244,34 +244,34 @@ void Interpreter::interpret() {
                 FileIO::printToFile_Result(printfStr);
                 break;
             }
-            case CodeType::VALUE :{
+            case CodeType::LOD :{//注意int x = a[i];这种情况a会调用LDA，而不是LOD
                 string* strPtr = reinterpret_cast<string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo = getVarInfo(*strPtr);
                 if (varInfo.isArray) {
-                    int v2 = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue2());
-                    if (v2 == 0) {//数组，但是没有下标，把地址放到栈顶
-                        push(varInfo.stackIndex);
-                    } else {//数组，并且有下标，把它的值放到栈顶
-                        int skew = std::get<int>(pop());
-                        push(programStack->at(varInfo.stackIndex + skew));
-                    }
+                    int skew = std::get<int>(pop());
+                    push(programStack->at(varInfo.stackIndex + skew));
                 } else {
                     push(programStack->at(varInfo.stackIndex));
                 }
                 break;
             }
-            case CodeType::ADDRESS :{
+            case CodeType::LDA :{
                 string* strPtr = reinterpret_cast<string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo = getVarInfo(*strPtr);
                 if (varInfo.isArray) {
-                    int skew = std::get<int>(pop());
-                    push(varInfo.stackIndex + skew);
+                    int v2 = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue2());
+                    if (v2 >= 0) {
+                        push(varInfo.stackIndex + v2);
+                    } else {
+                        int skew = std::get<int>(pop());
+                        push(varInfo.stackIndex + skew);
+                    }
                 } else {
                     push(varInfo.stackIndex);
                 }
                 break;
             }
-            case CodeType::PLACESPACE :{
+            case CodeType::EMPTY :{
                 string* strPtr = reinterpret_cast<string*>(pCodeList -> at(pc)->getValue1());
                 int v2 = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue2());
                 VarInfo varInfo = getVarInfo(*strPtr);
@@ -359,7 +359,7 @@ void Interpreter::interpret() {
                 }
                 break;
             }
-            case CodeType::MULT :{
+            case CodeType::MUL :{
                 VariantType topElement1 = pop();
                 VariantType topElement2 = pop();
                 if (std::holds_alternative<int>(topElement1)) {
@@ -444,7 +444,7 @@ void Interpreter::interpret() {
                 //TODO: handle not
                 break;
             }
-            case CodeType::MINU :{
+            case CodeType::MUS :{
                 VariantType topElement1 = pop();
                 if (std::holds_alternative<int>(topElement1)) {
                     int value1 = std::get<int>(topElement1);
