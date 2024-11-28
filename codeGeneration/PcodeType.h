@@ -12,11 +12,9 @@ enum  class CodeType {
 
     // 声明一个变量，用于在程序中定义新的变量
     VARINT, VARCHAR, VARINTARRAY, VARCHARARRAY,
-    // Value1: Ident_name（变量标识符名）, Value2: 空指针
 
     // 将值数字、char压入栈顶
     LDI, LDC,
-    // Value1: Ident_name（变量标识符名）或Digit（数字）, Value2: 空指针
 
     PAL, //popValue then popAddress then setValue to address
 
@@ -31,7 +29,6 @@ enum  class CodeType {
 
     // 主函数标签，用于标识程序的主函数开始位置
     MAIN,
-    // Value1: 空指针, Value2: 空指针
 
     // 函数标签，用于标识一个函数的开始位置
     FUNC,
@@ -42,7 +39,6 @@ enum  class CodeType {
     // 定义函数参数，包括参数名和参数类型
     PARINT,PARCHAR,PARINTARRAY,PARCHARARRAY,
 
-
     // 函数调用，调用指定名称的函数
     CAL,
 
@@ -51,7 +47,6 @@ enum  class CodeType {
 
     // 获取一个整数并将其压入栈顶
     GETINT,
-    // Value1: 空指针, Value2: 空指针
 
     GETCHAR,
 
@@ -72,8 +67,6 @@ enum  class CodeType {
 
     // 退出程序
     EXIT,
-    // Value1: 空指针, Value2: 空指针
-
 };
 
 const std::unordered_map<CodeType, std::string> codeTypeToStringMap = {
