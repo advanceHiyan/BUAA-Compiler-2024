@@ -204,7 +204,14 @@ void SemanticAnalyzer::visit_For_Stmt(Node *stmt, SymbolTable *this_table) {
                                                          block_num++,TableType::ForBlock);
                 visit_Block(stmt->children.at(i)->children.at(0), new_table);
             } else {
-                visit_Stmt(stmt->children.at(i), this_table);
+                Node *stmt_in_for = stmt->children.at(i);
+                if(stmt_in_for->children.at(0)->parsingItem == ParsingItem::OverToken
+                &&(stmt_in_for->children.at(0) ->token->tokenValue == "break" ||
+                stmt_in_for->children.at(0) ->token->tokenValue == "continue")) {
+
+                } else {
+                    visit_Stmt(stmt->children.at(i), this_table);
+                }
             }
         } else if(stmt->children.at(i)->parsingItem == ParsingItem::Cond) {
             visit_Cond(stmt->children.at(i), this_table);
