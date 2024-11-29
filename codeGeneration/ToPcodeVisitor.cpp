@@ -4,7 +4,9 @@
 
 #include "ToPcodeVisitor.h"
 using namespace std;
-
+int IfLabel::label_num = 0;
+int ForLabel::label_num = 0;
+int TempLabel::label_num = 0;
 //编译单元 CompUnit → {Decl} {FuncDef} MainFuncDef
 //函数定义 FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
 //主函数定义 MainFuncDef → 'int' 'main' '(' ')' Block // 存在main函数
@@ -25,7 +27,7 @@ void ToPcodeVisitor::visit(Node *node) {
                                                       block_num++,TableType::IntFunc);
             addCode(CodeType::MAIN);
             int i = child->children.size() - 1;
-            visit_Block(child->children.at(i), main_table);
+            visit_Block(child->children.at(i), main_table,nullptr);
             addCode(CodeType::EXIT);
         }
     }
@@ -98,21 +100,21 @@ void ToPcodeVisitor::visit_FParamsAndBlock(Node *func_def, FunSymbolTable *this_
                 addCode(CodeType::FUNC,func_name,0);
             }
 
-            visit_Block(func_def->children.at(i), this_table);
+            visit_Block(func_def->children.at(i), this_table,nullptr);
         }
     }
 }
 
 //语句块 Block → '{' { BlockItem } '}'
 //语句块项 BlockItem → Decl | Stmt
-void ToPcodeVisitor::visit_Block(Node *block, SymbolTable *this_table) {
+void ToPcodeVisitor::visit_Block(Node *block, SymbolTable *this_table,ForLabel *forLabel) {
     for(int i = 1; i < block->children.size()-1; i++) {
         if(block->children.at(i)->parsingItem == ParsingItem::BlockItem) {
             Node *decl_or_stmt = block->children.at(i) ->children.at(0);
             if(decl_or_stmt->parsingItem == ParsingItem::Decl) {
                 visit_Decl(decl_or_stmt, this_table);
             } else {
-                visit_Stmt(decl_or_stmt, this_table);
+                visit_Stmt(decl_or_stmt, this_table,forLabel);
             }
         }
     }
@@ -130,52 +132,48 @@ void ToPcodeVisitor::visit_Block(Node *block, SymbolTable *this_table) {
 //| LVal '=' 'getint''('')'';'
 //| LVal '=' 'getchar''('')'';'
 //| 'printf''('StringConst {','Exp}')'';' // 1.有Exp 2.无Exp
-void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table) {
+void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table,ForLabel *forLabel) {
     if(stmt->children.size() == 1 && stmt->children.at(0)->parsingItem == ParsingItem::OverToken) {//;
         return;//空语句
     } else if(stmt->children.at(0)->parsingItem == ParsingItem::Block) {//if{}else{} 空{}
         SymbolTable *new_table = new SymbolTable("emptyTable", this_table,
                                                  block_num++,TableType::EmptyBlock);
-        visit_Block(stmt->children.at(0), new_table);
+        visit_Block(stmt->children.at(0), new_table,forLabel);
     } else if (stmt->children.at(0)->parsingItem == ParsingItem::LVal) {
-
         Symbol *symbol = this_table->getSymbol(stmt->children.at(0)->children.at(0)->token->tokenValue);
-        addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
-
         if(stmt->children.at(2) ->parsingItem == ParsingItem::Exp) {//LVal = Exp;
             visit_LVal(stmt->children.at(0), this_table);
+            addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
             visit_Exp_or_ConstExp(stmt->children.at(2), this_table);
         } else {//LVal = getint();LVal = getchar();
             visit_LVal(stmt->children.at(0), this_table);
-
+            addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
             if (stmt -> children.at(2) -> token -> tokenValue == "getint") {
                 addCode(CodeType::GETINT);
             } else {
                 addCode(CodeType::GETCHAR);
             }
-
         }
         addCode(CodeType::PAL);
-
     } else if(stmt ->children.at(0) ->parsingItem == ParsingItem::Exp) {//exp;
         visit_Exp_or_ConstExp(stmt->children.at(0), this_table);
     } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "if") {
-        visit_If_Stmt(stmt, this_table);
+        visit_If_Stmt(stmt, this_table,forLabel);
     } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "for") {
         visit_For_Stmt(stmt, this_table);
     } else if(stmt->children.at(0)->token != nullptr && (stmt->children.at(0)->token->
             tokenValue == "continue" ||stmt->children.at(0)->token->tokenValue == "break")) {
-
-
+        if(stmt->children.at(0)->token->tokenValue == "continue") {
+            addCode(CodeType::JMP,forLabel -> for_last_stmt_label);
+        } else {
+            addCode(CodeType::JMP,forLabel -> for_end_label);
+        }
     } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "return") {
-
-
         if(stmt->children.size() > 2) {
             visit_Exp_or_ConstExp(stmt->children.at(1), this_table);
         }
         int isReturn = this_table -> isReturnFun();//1//2void//-1no
         addCode(CodeType::RET,isReturn);
-
     } else if(stmt->children.at(0)->token != nullptr && stmt->children.at(0)->token->tokenValue == "printf") {
         int size = 0;
         for(int i = 2; i < stmt->children.size(); i++) {
@@ -185,7 +183,6 @@ void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table) {
             }
         }
         addCode(CodeType::PRINTF,stmt->children.at(2)->token->tokenValue,size);
-//        addCode(CodeType::PRINTF,std::
     }
     else {
         cout << "Stmt ???" << endl;
@@ -195,25 +192,57 @@ void ToPcodeVisitor::visit_Stmt(Node *stmt, SymbolTable *this_table) {
 //| 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt // 1. 无缺省，1种情况 2.
 // ForStmt → LVal '=' Exp
 void ToPcodeVisitor::visit_For_Stmt(Node *stmt, SymbolTable *this_table) {
+    cout << "For_Stmt" << endl;
     int i = 2;
+    int assign_num = 0;
+    ForLabel *forLabel = new ForLabel();
+    addCode(CodeType::LABEL,forLabel -> for_start_label);
     while(i < stmt ->children.size()) {
         if(stmt->children.at(i)->parsingItem == ParsingItem::ForStmt) {
-            visit_LVal(stmt->children.at(i) ->children.at(0), this_table);
-            //TODO,for LVal
-            visit_Exp_or_ConstExp(stmt->children.at(i) ->children.at(2), this_table);
+            if (assign_num == 0) { // 第一个forstmt
+                Node *lval = stmt->children.at(i) ->children.at(0);
+                Symbol *symbol = this_table->getSymbol(lval->children.at(0)->token->tokenValue);
+                visit_LVal(lval, this_table);
+                addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
+                visit_Exp_or_ConstExp(stmt->children.at(i) ->children.at(2), this_table);
+                addCode(CodeType::PAL);
+            }
         } else if (stmt->children.at(i)->parsingItem == ParsingItem::Stmt) {
+            addCode(CodeType::LABEL,forLabel->for_stmt_label);
             if(stmt->children.at(i)->children.at(0) ->parsingItem == ParsingItem::Block) {
                 SymbolTable *new_table = new SymbolTable("forTable", this_table,
                                                          block_num++,TableType::ForBlock);
-                visit_Block(stmt->children.at(i)->children.at(0), new_table);
+                visit_Block(stmt->children.at(i)->children.at(0), new_table,forLabel);
             } else {
-                visit_Stmt(stmt->children.at(i), this_table);
+                visit_Stmt(stmt->children.at(i), this_table,forLabel);
             }
-        } else if(stmt->children.at(i)->parsingItem == ParsingItem::Cond) {
-            visit_Cond(stmt->children.at(i), this_table);
+            addCode(CodeType::LABEL,forLabel -> for_last_stmt_label);
+            if(stmt->children.at(i - 2) ->parsingItem == ParsingItem::ForStmt) {//第二个forstmt
+                Node *lval = stmt->children.at(i - 2) ->children.at(0);
+                Symbol *symbol = this_table->getSymbol(lval->children.at(0)->token->tokenValue);
+                visit_LVal(lval, this_table);
+                addCode(CodeType::LDA,std::to_string(symbol->blockNum) + "_" + symbol->name,-1);
+                visit_Exp_or_ConstExp(stmt->children.at(i -  2) ->children.at(2), this_table);
+                addCode(CodeType::PAL);
+            }
+        }  else if(stmt ->children.at(i) ->parsingItem == ParsingItem::OverToken) {
+            if(stmt->children.at(i)->token->tokenValue == ";") {
+                assign_num += 1;
+                if(assign_num == 1 ) {//下一个可能是cond
+                    if(stmt->children.at(i + 1)->parsingItem == ParsingItem::Cond) {
+                        addCode(CodeType::LABEL,forLabel -> for_cond_label);
+                        visit_Cond(stmt->children.at(i + 1), this_table,forLabel, nullptr);
+                        addCode(CodeType::JPC,forLabel -> for_end_label);
+                    } else {
+                        addCode(CodeType::LABEL,forLabel -> for_cond_label);
+                    }
+                }
+            }
         }
         i += 1;
     }
+    addCode(CodeType::JMP,forLabel -> for_cond_label);
+    addCode(CodeType::LABEL,forLabel -> for_end_label);
 }
 
 //左值表达式 LVal → Ident ['[' Exp ']']
@@ -257,7 +286,7 @@ void ToPcodeVisitor::visit_InitVal(Node *init_val, SymbolTable *this_table,std::
                 } else if(c == 'f') {
                     addCode(CodeType::LDC,  "\f");
                 } else if(c == '0') {
-                    addCode(CodeType::LDC,+ "\0");
+                    addCode(CodeType::LDC, +"\0");
                 } else if(c == 'v') {
                     addCode(CodeType::LDC,"\v");
                 } else {
@@ -275,16 +304,19 @@ void ToPcodeVisitor::visit_InitVal(Node *init_val, SymbolTable *this_table,std::
 }
 
 //| 'if' '(' Cond ')' Stmt [ 'else' Stmt ] // 1.有else 2.无else
-void ToPcodeVisitor::visit_If_Stmt(Node *stmt, SymbolTable *this_table) {
-    int i = 1;
-    while(i < stmt ->children.size()) {
-        if(stmt->children.at(i)->parsingItem == ParsingItem::Stmt) {
-            visit_Stmt(stmt->children.at(i), this_table);//Block可能是{},直接识别为空快，if的块不需要特殊处理
-        } else if(stmt->children.at(i)->parsingItem == ParsingItem::Cond) {
-            visit_Cond(stmt->children.at(i), this_table);
-        }
-        i += 1;
+void ToPcodeVisitor::visit_If_Stmt(Node *stmt, SymbolTable *this_table,ForLabel *forLabel) {
+    IfLabel *ifLabel = new IfLabel();
+    addCode(CodeType::LABEL,ifLabel->if_start_label);
+    visit_Cond(stmt->children.at(2), this_table, nullptr,ifLabel);
+    addCode(CodeType::JPC,ifLabel->else_label);//栈顶是0就跳转到else
+    addCode(CodeType::LABEL,ifLabel->if_stmt_label);
+    visit_Stmt(stmt->children.at(4), this_table,forLabel);
+    addCode(CodeType::JMP,ifLabel->if_end_label);//无条件跳转到结束
+    addCode(CodeType::LABEL,ifLabel->else_label);
+    if(stmt->children.size() > 5) {
+        visit_Stmt(stmt->children.at(6), this_table,forLabel);
     }
+    addCode(CodeType::LABEL,ifLabel->if_end_label);
 }
 
 //声明 Decl → ConstDecl | VarDecl
@@ -524,7 +556,28 @@ void ToPcodeVisitor::visit_PrimaryExp(Node *primary_exp, SymbolTable *this_table
             addCode(CodeType::LDI, std::stoi(child->children.at(0)->token->tokenValue));
         } else if(child -> parsingItem == ParsingItem::Character) {
             std::string value = child->children.at(0)->token->tokenValue;
-            addCode(CodeType::LDC, value.substr(1,1));
+            if(value.size() == 4) {
+                char c = value.at(2);
+                if (c == 'n') {
+                    addCode(CodeType::LDC,  "\n");
+                } else if (c == 't') {
+                    addCode(CodeType::LDC, "\t");
+                } else if (c == 'a') {
+                    addCode(CodeType::LDC, "\a");
+                } else if(c == 'b') {
+                    addCode(CodeType::LDC,  "\b");
+                } else if(c == 'f') {
+                    addCode(CodeType::LDC,  "\f");
+                } else if(c == '0') {
+                    addCode(CodeType::LDC, +"\0");
+                } else if(c == 'v') {
+                    addCode(CodeType::LDC,"\v");
+                } else {
+                    addCode(CodeType::LDC, value.substr(2,1));
+                }
+            } else {
+                    addCode(CodeType::LDC, value.substr(1,1));
+            };
         }
     }
 }
@@ -553,50 +606,91 @@ void ToPcodeVisitor::visit_LVal_without_assign(Node *lval, SymbolTable *this_tab
 }
 
 //条件表达式 Cond → LOrExp
-void ToPcodeVisitor::visit_Cond(Node *cond, SymbolTable *this_table) {
+void ToPcodeVisitor::visit_Cond(Node *cond, SymbolTable *this_table,ForLabel *forLabel,IfLabel *ifLabel) {
     Node *lor_exp = cond->children.at(0);
-    visit_LOrExp(lor_exp, this_table);
+    visit_LOrExp(lor_exp, this_table,forLabel,ifLabel);
 }
 //逻辑或表达式 LOrExp → LAndExp | LOrExp '||' LAndExp
-void ToPcodeVisitor::visit_LOrExp(Node *lor_exp, SymbolTable *this_table) {
-    for(Node * child : lor_exp ->children) {
-        if (child->parsingItem == ParsingItem::LOrExp) {
-            visit_LOrExp(child,this_table);
-        } else if(child -> parsingItem == ParsingItem::LAndExp) {
-            visit_LAndExp(child,this_table);
+void ToPcodeVisitor::visit_LOrExp(Node *lor_exp, SymbolTable *this_table,ForLabel *forLabel,IfLabel *ifLabel) {
+    for(int i = 0; i < lor_exp->children.size(); ++i) {
+        Node *child = lor_exp->children.at(i);
+        if (child->parsingItem == ParsingItem::LAndExp) {
+            TempLabel *tempLabel = new TempLabel();
+            visit_LAndExp(child, this_table,tempLabel);
+            addCode(CodeType::LABEL,tempLabel->label);
+            if (i - 1 >= 0 && lor_exp->children.at(i - 1)->parsingItem == ParsingItem::OverToken) {
+                if (lor_exp->children.at(i - 1)->token->tokenValue == "||") {
+                    addCode(CodeType::OR);
+                }
+            }
+        } else if (child->parsingItem == ParsingItem::LOrExp) {
+            visit_LOrExp(child, this_table,forLabel,ifLabel);
+            if(ifLabel != nullptr) {
+                addCode(CodeType::JPF,ifLabel->if_stmt_label);
+            } else {
+                addCode(CodeType::JPF,forLabel->for_stmt_label);
+            }
         }
     }
 }
 
+
 //LAndExp → EqExp | LAndExp '&&' EqExp
-void ToPcodeVisitor::visit_LAndExp(Node *land_exp, SymbolTable *this_table) {
-    for(Node * child : land_exp ->children) {
-        if (child->parsingItem == ParsingItem::LAndExp) {
-            visit_LAndExp(child,this_table);
-        } else if(child -> parsingItem == ParsingItem::EqExp) {
-            visit_EqExp(child,this_table);
+void ToPcodeVisitor::visit_LAndExp(Node *land_exp, SymbolTable *this_table,TempLabel *tempLabel) {
+        for(int i = 0; i < land_exp->children.size(); ++i) {
+            Node *child = land_exp->children.at(i);
+            if (child->parsingItem == ParsingItem::EqExp) {
+                visit_EqExp(child, this_table);
+                if (i - 1 >= 0 && land_exp->children.at(i - 1)->parsingItem == ParsingItem::OverToken) {
+                    if (land_exp->children.at(i - 1)->token->tokenValue == "&&") {
+                        addCode(CodeType::AND);
+                    }
+                }
+            } else if (child->parsingItem == ParsingItem::LAndExp) {
+                visit_LAndExp(child, this_table,tempLabel);
+                addCode(CodeType::JPC,tempLabel->label);
+            }
         }
-    }
 }
 
 //EqExp → RelExp | EqExp ('==' | '!=') RelExp
 void ToPcodeVisitor::visit_EqExp(Node *eq_exp, SymbolTable *this_table) {
-    for(Node * child : eq_exp ->children) {
-        if (child->parsingItem == ParsingItem::EqExp) {
-            visit_EqExp(child,this_table);
-        } else if(child -> parsingItem == ParsingItem::RelExp) {
-            visit_RelExp(child,this_table);
+    for(int i = 0; i < eq_exp->children.size(); ++i) {
+        Node *child = eq_exp->children.at(i);
+        if (child->parsingItem == ParsingItem::RelExp) {
+            visit_RelExp(child, this_table);
+            if (i - 1 >= 0 && eq_exp->children.at(i - 1)->parsingItem == ParsingItem::OverToken) {
+                if (eq_exp->children.at(i - 1)->token->tokenValue == "==") {
+                    addCode(CodeType::EQL);
+                } else if (eq_exp->children.at(i - 1)->token->tokenValue == "!=") {
+                    addCode(CodeType::NEQ);
+                }
+            }
+        } else if (child->parsingItem == ParsingItem::EqExp) {
+            visit_EqExp(child, this_table);
         }
     }
 }
 
 //RelExp → AddExp | RelExp ('<' | '>' | '<=' | '>=') AddExp
 void ToPcodeVisitor::visit_RelExp(Node *rel_exp, SymbolTable *this_table) {
-    for(Node * child : rel_exp ->children) {
-        if (child->parsingItem == ParsingItem::RelExp) {
-            visit_RelExp(child,this_table);
-        } else if(child -> parsingItem == ParsingItem::AddExp) {
-            visit_AddExp(child,this_table);
+    for(int i = 0; i < rel_exp->children.size(); ++i) {
+        Node *child = rel_exp->children.at(i);
+        if (child->parsingItem == ParsingItem::AddExp) {
+            visit_AddExp(child, this_table);
+            if (i - 1 >= 0 && rel_exp->children.at(i - 1)->parsingItem == ParsingItem::OverToken) {
+                if (rel_exp->children.at(i - 1)->token->tokenValue == "<") {
+                    addCode(CodeType::LSS);
+                } else if (rel_exp->children.at(i - 1)->token->tokenValue == ">") {
+                    addCode(CodeType::GRT);
+                } else if (rel_exp->children.at(i - 1)->token->tokenValue == "<=") {
+                    addCode(CodeType::LER);
+                } else if (rel_exp->children.at(i - 1)->token->tokenValue == ">=") {
+                    addCode(CodeType::GEQ);
+                }
+            }
+        } else if (child->parsingItem == ParsingItem::RelExp) {
+            visit_RelExp(child, this_table);
         }
     }
 }

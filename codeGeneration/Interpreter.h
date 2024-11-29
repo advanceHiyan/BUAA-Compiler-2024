@@ -48,14 +48,12 @@ struct AR_Info {
             int stackIndex, int paramCount, int haveParams) {
         this->retPc = retPc;
         this->varNameToInfoMap = varNameToInfoMap;
-        varNameToInfoMap = new std::unordered_map<std::string, VarInfo>;
+        varNameToInfoMap = new std::unordered_map<std::string, VarInfo>; //没有用，这改变的只是参数指针，而不是外部传地址的指针
         this->stackIndex = stackIndex;
         this->paramCount = paramCount;
         this->haveParams = haveParams;
     }
 };
-
-using VariantType = std::variant<int, std::string>;
 
 class Interpreter {
 
@@ -65,9 +63,10 @@ public:
 
 private:
     std :: vector<PCode*>* pCodeList;
-    std:: vector<VariantType> *programStack;
+    std:: vector<int> *programStack;
     std::unordered_map<std::string ,FunctInfo> *funNameToPcIndexMap;
     std::unordered_map<std::string, VarInfo> *tempVarNameToInfoMap;
+    std::unordered_map<std::string, int> *labelNameToPcIndexMap;
     std::vector<int> *paramStackIndexList;
     std::vector<AR_Info*> *arList;
     int pc = 0;
@@ -75,30 +74,15 @@ private:
     int haveParams = 0;
     int startPcIndex;
 
-    VariantType pop();
+    int pop();
 
-    void push(VariantType value);
+    void push(int value);
 
-    void setElement(int index, VariantType value);
+    void setElement(int index, int value);
 
     AR_Info *popAR_List();
 
     VarInfo getVarInfo(std::string varName);
 };
-//    while (!myStack.empty()) {
-//        VariantType topElement = myStack.top();
-//
-//        // 使用std::holds_alternative检查元素类型并进行相应处理
-//        if (std::holds_alternative<int>(topElement)) {
-//            int intValue = std::get<int>(topElement);
-//            std::cout << "栈顶元素是整数: " << intValue << std::endl;
-//        } else if (std::holds_alternative<std::string>(topElement)) {
-//            std::string stringValue = std::get<std::string>(topElement);
-//            std::cout << "栈顶元素是字符串: " << stringValue << std::endl;
-//        }
-//
-//        myStack.pop();
-//    }
 
-//int* int_ptr = reinterpret_cast<int*>(void_ptr);
 #endif //COMPILER_INTERPRETER_H

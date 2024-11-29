@@ -10,6 +10,47 @@
 #include "../parser/Node.h"
 #include "../semantic/Visitor.h"
 #include "./Pcode.h"
+struct IfLabel {
+    std::string if_start_label;
+    std::string if_stmt_label;
+    std::string else_label;
+    std::string if_end_label;
+    static int label_num;
+    IfLabel() {
+        if_start_label = "if_start_" + std::to_string(label_num);
+        if_stmt_label = "if_block_" + std::to_string(label_num);
+        else_label = "else_" + std::to_string(label_num);
+        if_end_label = "end_" + std::to_string(label_num);
+        label_num++;
+    }
+};
+
+struct ForLabel {
+    std::string for_start_label;
+    std::string for_cond_label;
+    std::string for_stmt_label;
+    std::string for_last_stmt_label;
+    std::string for_end_label;
+    static int label_num;
+    ForLabel() {
+        for_start_label = "for_start_" + std::to_string(label_num);
+        for_cond_label = "for_cond_" + std::to_string(label_num);
+        for_stmt_label = "for_stmt_" + std::to_string(label_num);
+        for_last_stmt_label = "for_last_stmt_" + std::to_string(label_num);
+        for_end_label = "for_end_" + std::to_string(label_num);
+        label_num++;
+    }
+};
+
+struct TempLabel {
+    std::string label;
+    static int label_num;
+    TempLabel() {
+        label = "temp_" + std::to_string(label_num);
+        label_num++;
+    }
+};
+
 
 class ToPcodeVisitor : public Visitor {
 public:
@@ -28,17 +69,17 @@ protected:
 
     void visit_FParamsAndBlock(Node *func_def, FunSymbolTable *this_table);
 
-    void visit_Block(Node *block, SymbolTable *this_table);
+    void visit_Block(Node *block, SymbolTable *this_table,ForLabel *forLabel);
 
-    void visit_Stmt(Node *stmt, SymbolTable *this_table);
+    void visit_Stmt(Node *stmt, SymbolTable *this_table,ForLabel *forLabel);
 
-    void visit_If_Stmt(Node *stmt, SymbolTable *this_table);
+    void visit_If_Stmt(Node *stmt, SymbolTable *this_table,ForLabel *forLabel);
 
     void visit_For_Stmt(Node *stmt, SymbolTable *this_table);
 
     void visit_LVal(Node *lval, SymbolTable *this_table);
 
-    void visit_Cond(Node *cond, SymbolTable *this_table);
+    void visit_Cond(Node *cond, SymbolTable *this_table,ForLabel *forLabel,IfLabel *ifLabel);
 
     void visit_Exp_or_ConstExp(Node *exp, SymbolTable *this_table);
 
@@ -50,9 +91,9 @@ protected:
 
     void visit_PrimaryExp(Node *primary_exp, SymbolTable *this_table);
 
-    void visit_LOrExp(Node *lor_exp, SymbolTable *this_table);
+    void visit_LOrExp(Node *lor_exp, SymbolTable *this_table,ForLabel *forLabel,IfLabel *ifLabel);
 
-    void visit_LAndExp(Node *land_exp, SymbolTable *this_table);
+    void visit_LAndExp(Node *land_exp, SymbolTable *this_table,TempLabel *tempLabel);
 
     void visit_EqExp(Node *eq_exp, SymbolTable *this_table);
 

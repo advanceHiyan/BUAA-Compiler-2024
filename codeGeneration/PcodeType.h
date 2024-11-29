@@ -67,6 +67,28 @@ enum  class CodeType {
 
     // 退出程序
     EXIT,
+
+    JMP, //无条件跳转
+
+    JPC, //如果栈顶为0，跳转
+
+    JPF, //如果栈顶为非0，跳转
+
+    OR,
+
+    AND,
+
+    EQL, //判断两个值是否相等
+
+    NEQ, //判断两个值是否不相等
+
+    LSS, //判断第一个值是否小于第二个值
+
+    LER, //判断第一个值是否小于等于第二个值
+
+    GRT, //判断第一个值是否大于第二个值
+
+    GEQ, //判断第一个值是否大于等于第二个值
 };
 
 const std::unordered_map<CodeType, std::string> codeTypeToStringMap = {
@@ -102,7 +124,18 @@ const std::unordered_map<CodeType, std::string> codeTypeToStringMap = {
         {CodeType::LDA, "LDA"},
         {CodeType::EMPTY, "EMPTY"},
         {CodeType::EXIT, "EXIT"},
-        {CodeType::EXF, "EXF"}
+        {CodeType::EXF, "EXF"},
+        {CodeType::JMP, "JMP"},
+        {CodeType::JPC, "JPC"},
+        {CodeType::OR, "OR"},
+        {CodeType::AND, "AND"},
+        {CodeType::EQL, "EQL"},
+        {CodeType::NEQ, "NEQ"},
+        {CodeType::LSS, "LSS"},
+        {CodeType::LER, "LER"},
+        {CodeType::GRT, "GRT"},
+        {CodeType::GEQ, "GEQ"},
+        {CodeType::JPF, "JPF"}
 };
 
 #endif //COMPILER_PCODETYPE_H

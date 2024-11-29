@@ -5,14 +5,17 @@
 #include <iostream>
 #include "Interpreter.h"
 #include "../fileIO/FileIO.h"
+int getint();
+int getchar();
 
 Interpreter::Interpreter(std::vector<PCode *> *pCodeList) {
-    this->pCodeList = pCodeList;
-    this->programStack = new std:: vector<VariantType>();
-    this->funNameToPcIndexMap = new std::unordered_map<std::string,FunctInfo>();
-    this->tempVarNameToInfoMap = new std::unordered_map<std::string, VarInfo>();
-    this -> paramStackIndexList = new std::vector<int>();
-    this -> arList = new std::vector<AR_Info*>();
+    this ->pCodeList = pCodeList;
+    this ->programStack = new std:: vector<int>();
+    this ->funNameToPcIndexMap = new std::unordered_map<std::string,FunctInfo>();
+    this ->tempVarNameToInfoMap = new std::unordered_map<std::string, VarInfo>();
+    this ->paramStackIndexList = new std::vector<int>();
+    this ->arList = new std::vector<AR_Info*>();
+    this ->labelNameToPcIndexMap = new std::unordered_map<std::string, int>();
     for (int i = 0; i < pCodeList -> size(); i++) {
         if (pCodeList -> at(i)->getType() == CodeType::MAIN) {
             startPcIndex = i;
@@ -22,7 +25,7 @@ Interpreter::Interpreter(std::vector<PCode *> *pCodeList) {
             FunctInfo functInfo(*strPtr, i + 1,paramCount);
             funNameToPcIndexMap->insert({*strPtr, functInfo});
         } else if (pCodeList -> at(i)->getType() == CodeType::LABEL) {
-            // TODO: handle label
+            labelNameToPcIndexMap->insert({*reinterpret_cast<std::string*>(pCodeList -> at(i)->getValue1()), i});
         } else if (pCodeList -> at(i)->getType() == CodeType::EXF &&
         pCodeList -> at(i - 1) -> getType() != CodeType::RET) {
             pCodeList->at(i) = new PCode(CodeType::RET, new int (2));
@@ -42,42 +45,65 @@ void Interpreter::interpret() {
             }
             case CodeType::LDC: {
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                programStack->push_back(*strPtr);
+                char value;
+                if (strPtr->length() == 1)
+                    value = strPtr->at(0);
+                else
+                    value = '\0';
+                int intVa = value;
+                programStack->push_back(intVa);
                 break;
             }
             case CodeType::VARINT :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo(programStack->size(), *strPtr, false, false);
-                tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                auto it = tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                if (!it.second) {
+                    tempVarNameToInfoMap ->erase(*strPtr);
+                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
+                }
                 break;
             }
             case CodeType::VARCHAR :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo(programStack->size(), *strPtr, true, false);
-                tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                auto it = tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                if (!it.second) {
+                    tempVarNameToInfoMap ->erase(*strPtr);
+                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
+                }
                 break;
             }
             case CodeType::VARINTARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo(programStack->size(), *strPtr, false, true);
-                tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                auto i = tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                if (!i.second) {
+                    tempVarNameToInfoMap ->erase(*strPtr);
+                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
+                }
                 break;
             }
             case CodeType::VARCHARARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo(programStack->size(), *strPtr, true, true);
-                tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                auto i = tempVarNameToInfoMap->insert({*strPtr, varInfo});
+                if (!i.second) {
+                    tempVarNameToInfoMap ->erase(*strPtr);
+                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
+                }
                 break;
             }
             case CodeType::PAL :{
-                std::variant value = pop();
-                int address = std::get<int>(pop());
+                int value = pop();
+                int address = (pop());
                 setElement(address, value);
                 break;
             }
             case CodeType::MAIN :{
                 arList->push_back(new AR_Info (pCodeList->size(),tempVarNameToInfoMap,
                                                programStack->size() - 1,0,0));
+                tempVarNameToInfoMap = new std::unordered_map<std::string, VarInfo>();
                 break;
             }
             case CodeType::FUNC :{
@@ -104,7 +130,7 @@ void Interpreter::interpret() {
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo param(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
                               *strPtr, false, false);
-                tempVarNameToInfoMap->insert({*strPtr, param});
+                tempVarNameToInfoMap->insert({*strPtr, param}); //不会覆盖；
                 haveParams++;
                 if (haveParams == needParams) {
                     paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
@@ -149,7 +175,7 @@ void Interpreter::interpret() {
                 break;
             }
             case CodeType::APA :{//已经调用LDA，把数组的地址放到栈顶，所以目标地址是栈顶的数值。
-                int address = std :: get<int>(programStack->at(programStack->size() - 1));
+                int address = (programStack->at(programStack->size() - 1));
                 paramStackIndexList->push_back(address);
                 break;
             }
@@ -158,6 +184,7 @@ void Interpreter::interpret() {
                 FunctInfo functInfo = funNameToPcIndexMap->at(*strPtr);
                 AR_Info * arInfo = new AR_Info(pc,tempVarNameToInfoMap,
                                                programStack->size() - 1,functInfo.paramCount,haveParams);
+                tempVarNameToInfoMap = new std::unordered_map<std::string, VarInfo>();
                 arList->push_back(arInfo);
                 pc = functInfo .pcIndex;
                 needParams = functInfo.paramCount;
@@ -169,21 +196,19 @@ void Interpreter::interpret() {
                 break;
             }
             case CodeType::GETINT :{
-                int value;
-                std::cin >> value;
+                int value = getint();
                 push(value);
                 break;
             }
             case CodeType::GETCHAR :{
-                std::string value;
-                std::cin >> value;
+                int value = getchar();
                 push(value);
                 break;
             }
             case CodeType::PRINTF :{
                 int n = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue2());
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                std::vector<VariantType> values;
+                std::vector<int> values;
                 for (int i = 0; i < n; i++) {
                     values.push_back(pop());
                 }
@@ -194,26 +219,14 @@ void Interpreter::interpret() {
                 // to_string(char) + string 会把int转成string再加上，反而不对
                 for (int i = 0; i < strPtr->size(); i++) {
                     if (strPtr->at(i) == '%' && i < strPtr->size() - 1 && strPtr->at(i + 1) == 'd') {
-                        if(std::holds_alternative<int>(values.at(j))) {
-                            int value = std::get<int>(values.at(j));
+                            int value = (values.at(j));
                             printfStr += std::to_string(value);
-                        } else {
-                            std::string tempValue = std::get<std::string>(values.at(j));
-                            char value = tempValue.at(0);
-                            int intValue = value;
-                            printfStr += to_string(intValue);
-                        }
                         j--;
                         i++;
                     } else if (strPtr->at(i) == '%' && i < strPtr->size() - 1 && strPtr->at(i + 1) == 'c') {
-                        if(std::holds_alternative<int>(values.at(j))) {
-                            int value = std::get<int>(values.at(j));
+                            int value = (values.at(j));
                             char charValue = value;
                             printfStr += charValue; //string +| char正常加，char本身是int，to_string会把int转成string再加
-                        } else {
-                            std::string value = std::get<std::string>(values.at(j));
-                            printfStr += value;
-                        }
                         j--;
                         i++;
                     } else if(strPtr->at(i) == '\\' && i < strPtr->size() - 1) {
@@ -244,14 +257,22 @@ void Interpreter::interpret() {
                 FileIO::printToFile_Result(printfStr);
                 break;
             }
-            case CodeType::LOD :{//注意int x = a[i];这种情况a会调用LDA，而不是LOD
+            case CodeType::LOD :{//注意int x = a[i];这种情况a会调用LOD
                 string* strPtr = reinterpret_cast<string*>(pCodeList -> at(pc)->getValue1());
                 VarInfo varInfo = getVarInfo(*strPtr);
+                int value;
                 if (varInfo.isArray) {
-                    int skew = std::get<int>(pop());
-                    push(programStack->at(varInfo.stackIndex + skew));
+                    int skew = (pop());
+                     value = programStack->at(varInfo.stackIndex + skew);
                 } else {
-                    push(programStack->at(varInfo.stackIndex));
+                    value = programStack->at(varInfo.stackIndex);
+                }
+                if (varInfo.isChar) {
+                    int intValue = (value);
+                    char charValue = (char)intValue;
+                    push(charValue);
+                } else {
+                    push(value);
                 }
                 break;
             }
@@ -263,7 +284,9 @@ void Interpreter::interpret() {
                     if (v2 >= 0) {
                         push(varInfo.stackIndex + v2);
                     } else {
-                        int skew = std::get<int>(pop());
+                        int skew;
+                        int value = pop();
+                        skew = value;
                         push(varInfo.stackIndex + skew);
                     }
                 } else {
@@ -275,25 +298,21 @@ void Interpreter::interpret() {
                 string* strPtr = reinterpret_cast<string*>(pCodeList -> at(pc)->getValue1());
                 int v2 = *reinterpret_cast<int*>(pCodeList -> at(pc)->getValue2());
                 VarInfo varInfo = getVarInfo(*strPtr);
-                VariantType placeValue = 0;
-                if (varInfo.isChar) {
-                    placeValue = "\0";
-                }
                 if (varInfo.isArray) {
-                    std::vector<VariantType> valueEDs;
+                    std::vector<int> valueEDs;
                     for (int i = 0; i < v2; i++) {
                         valueEDs.push_back(pop());
                     }
-                    int needSize = std::get<int>(pop());
+                    int needSize = (pop());
                     for(int i = valueEDs.size() - 1; i >= 0; i--) {
                         push(valueEDs.at(i));
                     }
                     for (int i = 0; i < needSize - valueEDs.size(); i++) {
-                        push(placeValue);
+                        push(0);
                     }
                 } else {
                     if (v2 == 0) {
-                        push(placeValue);
+                        push(0);
                     }
                 }
                 break;
@@ -302,157 +321,165 @@ void Interpreter::interpret() {
                 return;
             }
             case CodeType::LABEL :{
-                //TODO: handle label
+                //done
+                break;
+            }
+            case CodeType::JMP :{
+                std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
+                pc = labelNameToPcIndexMap->at(*strPtr);
+                break;
+            }
+            case CodeType::JPF: {
+                std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
+                int value = pop();
+                if (value != 0) {
+                    pc = labelNameToPcIndexMap->at(*strPtr);
+                    push(value);
+                } else {
+                    push(value);
+                }
+                break;
+            }
+            case CodeType::JPC :{ //是0就跳转
+                int value = pop();
+                if (value == 0) {
+                    std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
+                    pc = labelNameToPcIndexMap->at(*strPtr);
+                    push(value);
+                } else {
+                    push(value);
+                }
                 break;
             }
             case CodeType::ADD :{
-                VariantType topElement1 = pop();
-                VariantType topElement2 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 + value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 + value1);
-                    }
-                } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 + value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 + value1);
-                    }
-                }
+                int value1 = pop();
+                int value2 = pop();
+                push(value2 + value1);
                 break;
             }
             case CodeType::SUB :{
-                VariantType topElement1 = pop();
-                VariantType topElement2 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 - value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 - value1);
-                    }
-                } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 - value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 - value1);
-                    }
-                }
+                int value1 = pop();
+                int value2 = pop();
+                push(value2 - value1);
                 break;
             }
             case CodeType::MUL :{
-                VariantType topElement1 = pop();
-                VariantType topElement2 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 * value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 * value1);
-                    }
-                } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 * value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 * value1);
-                    }
-                }
+                int value1 = pop();
+                int value2 = pop();
+                push(value2 * value1);
                 break;
             }
             case CodeType::DIV :{
-                VariantType topElement1 = pop();
-                VariantType topElement2 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 / value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 / value1);
-                    }
-                } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 / value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 / value1);
-                    }
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 == 0) {
+                    cout << "Error: Division by zero" << endl;
+                    exit(1);
                 }
+                push(value2 / value1);
                 break;
             }
             case CodeType::MOD :{
-                VariantType topElement1 = pop();
-                VariantType topElement2 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 % value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 % value1);
-                    }
-                } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    if (std::holds_alternative<int>(topElement2)) {
-                        int value2 = std::get<int>(topElement2);
-                        push(value2 % value1);
-                    } else {
-                        std::string tempValue2 = std::get<std::string>(topElement2);
-                        char value2 = tempValue2.at(0);
-                        push(value2 % value1);
-                    }
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 == 0) {
+                    cout << "Error: Division by zero" << endl;
+                    exit(1);
                 }
+                push(value2 % value1);
                 break;
             }
             case CodeType::NOT :{
-                //TODO: handle not
+                int value = pop();
+                if (value == 0) {
+                    push(1);
+                } else {
+                    push(0);
+                }
                 break;
             }
             case CodeType::MUS :{
-                VariantType topElement1 = pop();
-                if (std::holds_alternative<int>(topElement1)) {
-                    int value1 = std::get<int>(topElement1);
-                    push(-value1);
+                int value1 = pop();
+                push(-value1);
+                break;
+            }
+            case CodeType::OR :{
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 != 0 || value2 != 0) {
+                    push(1);
                 } else {
-                    std::string tempValue1 = std::get<std::string>(topElement1);
-                    char value1 = tempValue1.at(0);
-                    push(-value1);
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::AND :{
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 != 0 && value2 != 0) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::EQL :{ //==
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 == value2) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::NEQ :{// !=
+                int value1 = pop();
+                int value2 = pop();
+                if (value1 != value2) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::LSS :{ // <
+                int value1 = pop();
+                int value2 = pop();
+                if (value2 < value1) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::LER :{// <=
+                int value1 = pop();
+                int value2 = pop();
+                if (value2 <= value1) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::GRT :{// >
+                int value1 = pop();
+                int value2 = pop();
+                if (value2 > value1) {
+                    push(1);
+                } else {
+                    push(0);
+                }
+                break;
+            }
+            case CodeType::GEQ :{// >=
+                int value1 = pop();
+                int value2 = pop();
+                if (value2 >= value1) {
+                    push(1);
+                } else {
+                    push(0);
                 }
                 break;
             }
@@ -480,20 +507,20 @@ VarInfo Interpreter::getVarInfo(std::string varName) {
 }
 
 
-VariantType Interpreter::pop() {
+int Interpreter::pop() {
     if (this -> pCodeList->empty()) {
         std::cerr << "error program stack is empty" << std::endl;
     }
-    VariantType value = this -> programStack->back();
+    int value = this -> programStack->back();
     this -> programStack->pop_back();
     return value;
 }
 
-void Interpreter::push(VariantType value) {
+void Interpreter::push(int value) {
     this -> programStack->push_back(value);
 }
 
-void Interpreter::setElement(int index, VariantType value) {
+void Interpreter::setElement(int index, int value) {
     if (this -> pCodeList->empty()) {
         std::cerr << "error program stack is empty" << std::endl;
     }
@@ -510,6 +537,19 @@ AR_Info* Interpreter::popAR_List() {
     AR_Info* arInfo = this -> arList->back();
     this -> arList->pop_back();
     return arInfo;
+}
+
+int getchar(){
+    char c;
+    scanf("%c",&c);
+    return (int)c;
+}
+
+int getint(){
+    int t;
+    scanf("%d",&t);
+    while(getchar()!='\n');
+    return t;
 }
 
 
