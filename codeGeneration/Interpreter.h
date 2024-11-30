@@ -83,6 +83,10 @@ private:
     AR_Info *popAR_List();
 
     VarInfo getVarInfo(std::string varName);
+
+    void addVarInfo(std::string varName, bool isChar, bool isArray);
+
+    void addParam(std::string varName, bool isChar, bool isArray);
 };
 
 #endif //COMPILER_INTERPRETER_H

@@ -56,42 +56,22 @@ void Interpreter::interpret() {
             }
             case CodeType::VARINT :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo varInfo(programStack->size(), *strPtr, false, false);
-                auto it = tempVarNameToInfoMap->insert({*strPtr, varInfo});
-                if (!it.second) {
-                    tempVarNameToInfoMap ->erase(*strPtr);
-                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
-                }
+                addVarInfo(*strPtr, false, false);
                 break;
             }
             case CodeType::VARCHAR :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo varInfo(programStack->size(), *strPtr, true, false);
-                auto it = tempVarNameToInfoMap->insert({*strPtr, varInfo});
-                if (!it.second) {
-                    tempVarNameToInfoMap ->erase(*strPtr);
-                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
-                }
+                addVarInfo(*strPtr, true, false);
                 break;
             }
             case CodeType::VARINTARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo varInfo(programStack->size(), *strPtr, false, true);
-                auto i = tempVarNameToInfoMap->insert({*strPtr, varInfo});
-                if (!i.second) {
-                    tempVarNameToInfoMap ->erase(*strPtr);
-                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
-                }
+                addVarInfo(*strPtr, false, true);
                 break;
             }
             case CodeType::VARCHARARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo varInfo(programStack->size(), *strPtr, true, true);
-                auto i = tempVarNameToInfoMap->insert({*strPtr, varInfo});
-                if (!i.second) {
-                    tempVarNameToInfoMap ->erase(*strPtr);
-                    tempVarNameToInfoMap ->insert({*strPtr, varInfo});
-                }
+                addVarInfo(*strPtr, true, true);
                 break;
             }
             case CodeType::PAL :{
@@ -128,46 +108,22 @@ void Interpreter::interpret() {
             }
             case CodeType::PARINT :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo param(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
-                              *strPtr, false, false);
-                tempVarNameToInfoMap->insert({*strPtr, param}); //不会覆盖；
-                haveParams++;
-                if (haveParams == needParams) {
-                    paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
-                }
+                addParam(*strPtr, false, false);
                 break;
             }
             case CodeType::PARCHAR :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo param(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
-                              *strPtr, true, false);
-                tempVarNameToInfoMap->insert({*strPtr, param});
-                haveParams++;
-                if (haveParams == needParams) {
-                    paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
-                }
+                addParam(*strPtr, true, false);
                 break;
             }
             case CodeType::PARINTARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo param(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
-                              *strPtr, false, true);
-                tempVarNameToInfoMap->insert({*strPtr, param});
-                haveParams++;
-                if (haveParams == needParams) {
-                    paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
-                }
+                addParam(*strPtr, false, true);
                 break;
             }
             case CodeType::PARCHARARRAY :{
                 std::string* strPtr = reinterpret_cast<std::string*>(pCodeList -> at(pc)->getValue1());
-                VarInfo param(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
-                              *strPtr, true, true);
-                tempVarNameToInfoMap->insert({*strPtr, param});
-                haveParams++;
-                if (haveParams == needParams) {
-                    paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
-                }
+                addParam(*strPtr, true, true);
                 break;
             }
             case CodeType::APR :{ //已经调用LOD指令，数值已经放到最新地址,所以目标地址就是栈顶
@@ -489,6 +445,29 @@ void Interpreter::interpret() {
             }
         }
         pc++;
+    }
+}
+
+void Interpreter::addParam(std::string varName, bool isChar, bool isArray) {
+    VarInfo varInfo(paramStackIndexList ->at(paramStackIndexList->size() - needParams + haveParams),
+                                             varName, isChar, isArray);
+    auto it = tempVarNameToInfoMap->insert({varName, varInfo});
+    if (!it.second) {
+        tempVarNameToInfoMap->erase(varName);
+        tempVarNameToInfoMap->insert({varName, varInfo});
+    }
+    haveParams++;
+    if (haveParams == needParams) {
+        paramStackIndexList->erase(paramStackIndexList->end() - haveParams, paramStackIndexList->end());
+    }
+}
+
+void Interpreter::addVarInfo(std::string varName, bool isChar, bool isArray) {
+    VarInfo varInfo(programStack->size(), varName, isChar, isArray);
+    auto it = tempVarNameToInfoMap->insert({varName, varInfo});
+    if (!it.second) {
+        tempVarNameToInfoMap->erase(varName);
+        tempVarNameToInfoMap->insert({varName, varInfo});
     }
 }
 
