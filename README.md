@@ -50,8 +50,7 @@ int main() {
 ```
 下面是IDE视角的编译器源代码  
 
-![961bb3904037f3a04dd5031dda53f8e](https://github.com/user-attachments/assets/0e077668-c3a5-4ff2-8bbe-8b9830fd6ae6)
-
+![1733661462342](https://github.com/user-attachments/assets/f0041cd2-f064-4a7f-a42d-91b209e82cf8)
 
 - main.cpp：程序入口
 - fileIO/ 文件读写和enum class定义模块
@@ -249,42 +248,26 @@ protected:
 本人选择了pcode，pcode比较自由，我只选择了其中一些指令，加上自己设计的一些指令。
 ```
 enum  class CodeType {
-    LABEL,
-    // 声明一个变量，用于在程序中定义新的变量
-    VARINT, VARCHAR, VARINTARRAY, VARCHARARRAY,
-    // 将值数字、char压入栈顶
-    LDI, LDC,
-    PAL, //popValue then popAddress then setValue to address
-    // 加法操作，将两个值相加
-    ADD,SUB,
-    // 乘法操作，将两个值相乘
+    LABEL, //标签
+    VARINT, VARCHAR, VARINTARRAY, VARCHARARRAY, // 声明一个变量，用于在程序中定义新的变量
+    LDI, LDC,// 将值数字、char压入栈顶
+    PAL,  //popValue then popAddress then setValue to address
+    ADD,SUB,    
     MUL,DIV,MOD,
-    // 逻辑非操作，取负
-    NOT,MUS,
-    // 主函数标签，用于标识程序的主函数开始位置
-    MAIN,
-    // 函数标签，用于标识一个函数的开始位置
-    FUNC,
-    // 函数返回，可以选择是否返回一个值
-    RET,
-    // 定义函数参数，包括参数名和参数类型
-    PARINT,PARCHAR,PARINTARRAY,PARCHARARRAY,
-    // 函数调用，调用指定名称的函数
-    CAL,
-    // 传递参数、传递函数参数
-    APR,  APA,
-    // 获取一个整数并将其压入栈顶
-    GETINT,
-    GETCHAR,
-    // 弹出栈中的值并打印，可能涉及字符串和参数数量
+    NOT,MUS, //取否 取负
+    MAIN, // main标签
+    FUNC, // 函数标签
+    RET, //函数返回
+    PARINT,PARCHAR,PARINTARRAY,PARCHARARRAY,// 定义函数参数，包括参数名和参数类型
+    CAL, // 函数调用，调用指定名称的函数
+    APR,  APA,    // 传递参数、传递数组参数
+    GETINT, GETCHAR,
     PRINTF,
-    // 获取变量的值，指定变量名和变量类型
-    LOD,
+    LOD, // 获取变量的值，指定变量名和变量类型
     LDA,// 获取变量的地址，指定变量名和变量类型
     EMPTY,// 给数组空间占位
     EXF,//标记函数结束，用于无返回值的void函数
-    // 退出程序
-    EXIT,
+    EXIT,// 退出程序
     JMP, //无条件跳转
     JPC, //如果栈顶为0，跳转
     JPF, //如果栈顶为非0，跳转
