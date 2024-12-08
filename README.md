@@ -2,7 +2,11 @@
 
 ## 源代码SysY中间代码PCode
 
-这个编译器会编译SysY语言为PCode中间代码，并解释执行。   SysY语言是C语言子集，文法见"文法.pdf"。   PCode见下文介绍。
+这个编译器会编译SysY语言为PCode中间代码，并解释执行。  
+
+SysY语言是C语言子集，文法见"文法.pdf"。  
+
+PCode见下文介绍。
 
 ## 目录
 
