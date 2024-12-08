@@ -1,4 +1,7 @@
 
+// @creator :  BUUAAAA - advanceHiyan
+// Copyright (c)  2024 All Rights Reserved.
+
 #include "lexer/Lexer.h"
 #include "fileIO/FileIO.h"
 #include "parser/Parser.h"
